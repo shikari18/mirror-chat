@@ -1,4 +1,11 @@
-import { ArrowUp, Image as ImageIcon, Mic, Plus, SlidersHorizontal } from "lucide-react";
+import {
+  ArrowUp,
+  AudioLines,
+  Image as ImageIcon,
+  Mic,
+  Plus,
+  SlidersHorizontal,
+} from "lucide-react";
 
 export function Composer({
   placeholder,
@@ -56,16 +63,12 @@ export function Composer({
               {toolLabel}
             </button>
 
-            <div className="ml-auto flex shrink-0 items-center gap-3">
+            <div className="ml-auto flex shrink-0 items-center gap-4">
               <button type="button" aria-label="Settings">
                 <SlidersHorizontal className="h-5 w-5 text-foreground/80" />
               </button>
-              <button
-                type="submit"
-                aria-label="Send"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-2"
-              >
-                <ArrowUp className="h-5 w-5" />
+              <button type="submit" aria-label="Send">
+                <ArrowUp className="h-6 w-6 text-foreground/80" />
               </button>
             </div>
           </>
@@ -79,7 +82,7 @@ export function Composer({
                 {modelLabel}
               </button>
             ) : null}
-            <div className="ml-auto flex items-center gap-3">
+            <div className="ml-auto flex items-center gap-4">
               <button type="button" aria-label="Voice input">
                 <Mic className="h-6 w-6 text-foreground/80" />
               </button>
@@ -89,7 +92,7 @@ export function Composer({
                 className="flex h-11 w-11 items-center justify-center rounded-full"
                 style={{ backgroundImage: "var(--gradient-voice)" }}
               >
-                <ArrowUp className="h-5 w-5 text-brand-foreground" />
+                <AudioLines className="h-5 w-5 text-brand-foreground" />
               </button>
             </div>
           </>
