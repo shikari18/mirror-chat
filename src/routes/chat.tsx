@@ -13,6 +13,17 @@ import {
   ThumbsUp,
   Volume2,
 } from "lucide-react";
+import fanCam from "@/assets/card-fancam.jpg";
+import space from "@/assets/card-space.jpg";
+import mermaid from "@/assets/card-mermaid.jpg";
+import boxer from "@/assets/card-boxer.jpg";
+
+const emptyCards = [
+  { label: "Fan Cam", src: fanCam },
+  { label: "Space", src: space },
+  { label: "Mermaid", src: mermaid },
+  { label: "Boxer", src: boxer },
+];
 
 export const Route = createFileRoute("/chat")({
   head: () => ({
@@ -91,37 +102,71 @@ function Chat() {
       />
       <SettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />
 
-      <main className="flex-1 space-y-5 px-4 py-6">
-        {messages.map((m, i) =>
-          m.role === "user" ? (
-            <div key={i} className="flex justify-end">
-              <p className="max-w-[80%] rounded-3xl bg-surface px-5 py-3 text-lg">
-                {m.text}
-              </p>
-            </div>
-          ) : (
-            <div key={i}>
-              <p className="text-lg">{m.text}</p>
-              <div className="mt-3 flex items-center gap-5 text-foreground/50">
-                <Copy className="h-5 w-5" />
-                <Volume2 className="h-5 w-5" />
-                <span className="flex items-center">
-                  <Repeat2 className="h-5 w-5" />
-                  <ChevronDown className="h-4 w-4" />
+      {messages.length === 0 ? (
+        <main className="flex flex-1 flex-col justify-center gap-6 pb-4">
+          <div className="flex items-end justify-center gap-2 px-3">
+            {emptyCards.map((c, i) => (
+              <div
+                key={c.label}
+                className="relative aspect-[3/4] w-[23%] overflow-hidden rounded-xl bg-surface"
+                style={{ transform: `rotate(${(i - 1.5) * 2}deg)` }}
+              >
+                <img
+                  src={c.src}
+                  alt={c.label}
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2 pb-2 pt-6 text-sm text-primary">
+                  {c.label}
                 </span>
-                <ThumbsUp className="h-5 w-5" />
-                <ThumbsDown className="h-5 w-5" />
-                <Ellipsis className="h-5 w-5" />
               </div>
-            </div>
-          ),
-        )}
-        <div ref={endRef} />
-      </main>
+            ))}
+          </div>
+          <div className="space-y-3 px-6 text-center">
+            <h1 className="text-xl font-semibold">The next era of video creation</h1>
+            <p className="text-base text-muted-foreground">
+              More creativity, more control - create stunning videos, graphics, and
+              realistic photos with even more precision.
+            </p>
+            <button className="rounded-full bg-primary px-7 py-2.5 text-base font-medium text-primary-foreground">
+              Try Now
+            </button>
+          </div>
+        </main>
+      ) : (
+        <main className="flex-1 space-y-5 px-4 py-6">
+          {messages.map((m, i) =>
+            m.role === "user" ? (
+              <div key={i} className="flex justify-end">
+                <p className="max-w-[80%] rounded-3xl bg-surface px-5 py-3 text-lg">
+                  {m.text}
+                </p>
+              </div>
+            ) : (
+              <div key={i}>
+                <p className="text-lg">{m.text}</p>
+                <div className="mt-3 flex items-center gap-5 text-foreground/50">
+                  <Copy className="h-5 w-5" />
+                  <Volume2 className="h-5 w-5" />
+                  <span className="flex items-center">
+                    <Repeat2 className="h-5 w-5" />
+                    <ChevronDown className="h-4 w-4" />
+                  </span>
+                  <ThumbsUp className="h-5 w-5" />
+                  <ThumbsDown className="h-5 w-5" />
+                  <Ellipsis className="h-5 w-5" />
+                </div>
+              </div>
+            ),
+          )}
+          <div ref={endRef} />
+        </main>
+      )}
 
       <footer className="px-3 pb-5">
         <Composer
-          placeholder="Ask anything"
+          placeholder="Give me a task — Consider it done."
           onSend={(text) =>
             persist([
               ...messages,
@@ -131,6 +176,7 @@ function Chat() {
           }
         />
       </footer>
+
     </div>
   );
 }
