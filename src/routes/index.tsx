@@ -102,7 +102,15 @@ function Index() {
               height={720}
               className="absolute inset-0 h-full w-full object-cover"
             />
-            <span className="absolute left-4 top-1/3 text-5xl leading-none">🇧🇷</span>
+            <div
+              aria-label="Brazil"
+              className="absolute left-4 top-1/3 flex h-14 w-20 items-center justify-center rounded-md bg-[oklch(0.62_0.19_150)]"
+            >
+              <div className="flex h-8 w-14 rotate-45 items-center justify-center bg-[oklch(0.88_0.19_100)]">
+                <div className="h-5 w-5 -rotate-45 rounded-full bg-[oklch(0.35_0.16_265)]" />
+              </div>
+            </div>
+
             <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 bg-gradient-to-t from-black/70 to-transparent pb-6 pt-12">
               <h1 className="text-2xl font-semibold text-primary">World Cup: Brazil</h1>
               <Link

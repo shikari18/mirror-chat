@@ -51,10 +51,11 @@ export function Composer({
             </button>
             <button
               type="button"
-              className="truncate rounded-full bg-surface-2 px-4 py-2 text-base"
+              className="shrink-0 whitespace-nowrap rounded-full bg-surface-2 px-3.5 py-2 text-sm"
             >
               {toolLabel}
             </button>
+
             <div className="ml-auto flex shrink-0 items-center gap-3">
               <button type="button" aria-label="Settings">
                 <SlidersHorizontal className="h-5 w-5 text-foreground/80" />
