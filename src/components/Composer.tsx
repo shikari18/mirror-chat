@@ -4,7 +4,7 @@ export function Composer({
   placeholder,
   onSend,
   variant = "chat",
-  modelLabel = "GPT-4.1 Mini",
+  modelLabel,
   toolLabel = "Nano Banana Pro",
 }: {
   placeholder: string;
@@ -71,12 +71,14 @@ export function Composer({
           </>
         ) : (
           <>
-            <button
-              type="button"
-              className="rounded-full bg-surface-2 px-4 py-2 text-base"
-            >
-              {modelLabel}
-            </button>
+            {modelLabel ? (
+              <button
+                type="button"
+                className="rounded-full bg-surface-2 px-4 py-2 text-base"
+              >
+                {modelLabel}
+              </button>
+            ) : null}
             <div className="ml-auto flex items-center gap-3">
               <button type="button" aria-label="Voice input">
                 <Mic className="h-6 w-6 text-foreground/80" />
