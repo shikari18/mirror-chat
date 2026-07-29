@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SettingsSheet } from "@/components/SettingsSheet";
 import { TopBar } from "@/components/TopBar";
@@ -37,17 +37,49 @@ export const Route = createFileRoute("/chat")({
 
 type Msg = { role: "user" | "assistant"; text: string };
 
+const STORAGE_KEY = "nova-chat-messages";
+
+function loadMessages(): Msg[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Msg[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 function Chat() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([
-    { role: "user", text: "Hey" },
-    { role: "assistant", text: "Hey! What's up? 😊" },
-  ]);
+  const [messages, setMessages] = useState<Msg[]>([]);
+  const endRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMessages(loadMessages());
+  }, []);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const persist = (next: Msg[]) => {
+    setMessages(next);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      /* storage unavailable */
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <TopBar tab="chat" onMenu={() => setMenuOpen(true)} showEdit />
+      <TopBar
+        tab="chat"
+        onMenu={() => setMenuOpen(true)}
+        showEdit
+        onNewChat={() => persist([])}
+      />
 
       <AppSidebar
         open={menuOpen}
@@ -84,14 +116,15 @@ function Chat() {
             </div>
           ),
         )}
+        <div ref={endRef} />
       </main>
 
       <footer className="px-3 pb-5">
         <Composer
           placeholder="Ask anything"
           onSend={(text) =>
-            setMessages((prev) => [
-              ...prev,
+            persist([
+              ...messages,
               { role: "user", text },
               { role: "assistant", text: "Got it — let me work on that. 😊" },
             ])
