@@ -1,11 +1,17 @@
-import { Mic, Plus } from "lucide-react";
+import { ArrowUp, Image as ImageIcon, Mic, Plus, SlidersHorizontal } from "lucide-react";
 
 export function Composer({
   placeholder,
   onSend,
+  variant = "chat",
+  modelLabel = "GPT-4.1 Mini",
+  toolLabel = "Nano Banana Pro",
 }: {
   placeholder: string;
   onSend?: (text: string) => void;
+  variant?: "chat" | "creative";
+  modelLabel?: string;
+  toolLabel?: string;
 }) {
   return (
     <form
@@ -29,31 +35,62 @@ export function Composer({
         <button
           type="button"
           aria-label="Add attachment"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-2"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-2"
         >
           <Plus className="h-5 w-5" />
         </button>
-        <div className="ml-auto flex items-center gap-3">
-          <button type="button" aria-label="Voice input">
-            <Mic className="h-6 w-6 text-foreground/80" />
-          </button>
-          <button
-            type="submit"
-            aria-label="Talk to assistant"
-            className="flex h-11 w-11 items-center justify-center rounded-full"
-            style={{ backgroundImage: "var(--gradient-voice)" }}
-          >
-            <span className="flex items-end gap-[3px]">
-              {[10, 16, 20, 16, 10].map((h, i) => (
-                <span
-                  key={i}
-                  className="w-[3px] rounded-full bg-primary-foreground"
-                  style={{ height: h }}
-                />
-              ))}
-            </span>
-          </button>
-        </div>
+
+        {variant === "creative" ? (
+          <>
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded-full bg-surface-2 px-4 py-2 text-base"
+            >
+              <ImageIcon className="h-5 w-5" />
+              Image
+            </button>
+            <button
+              type="button"
+              className="truncate rounded-full bg-surface-2 px-4 py-2 text-base"
+            >
+              {toolLabel}
+            </button>
+            <div className="ml-auto flex shrink-0 items-center gap-3">
+              <button type="button" aria-label="Settings">
+                <SlidersHorizontal className="h-5 w-5 text-foreground/80" />
+              </button>
+              <button
+                type="submit"
+                aria-label="Send"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-2"
+              >
+                <ArrowUp className="h-5 w-5" />
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="rounded-full bg-surface-2 px-4 py-2 text-base"
+            >
+              {modelLabel}
+            </button>
+            <div className="ml-auto flex items-center gap-3">
+              <button type="button" aria-label="Voice input">
+                <Mic className="h-6 w-6 text-foreground/80" />
+              </button>
+              <button
+                type="submit"
+                aria-label="Send message"
+                className="flex h-11 w-11 items-center justify-center rounded-full"
+                style={{ backgroundImage: "var(--gradient-voice)" }}
+              >
+                <ArrowUp className="h-5 w-5 text-brand-foreground" />
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </form>
   );

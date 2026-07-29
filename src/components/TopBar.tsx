@@ -5,10 +5,12 @@ export function TopBar({
   tab,
   onMenu,
   showEdit,
+  onNewChat,
 }: {
   tab: "chat" | "creative";
   onMenu: () => void;
   showEdit?: boolean;
+  onNewChat?: () => void;
 }) {
   const navigate = useNavigate();
 
@@ -45,7 +47,11 @@ export function TopBar({
       </div>
 
       {showEdit ? (
-        <button aria-label="New chat" className="shrink-0 px-2 text-foreground">
+        <button
+          aria-label="New chat"
+          onClick={onNewChat}
+          className="shrink-0 px-2 text-foreground"
+        >
           <SquarePen className="h-6 w-6" />
         </button>
       ) : (
