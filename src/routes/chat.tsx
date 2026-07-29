@@ -88,7 +88,7 @@ function Chat() {
       <TopBar
         tab="chat"
         onMenu={() => setMenuOpen(true)}
-        showEdit
+        showEdit={messages.length > 0}
         onNewChat={() => persist([])}
       />
 
