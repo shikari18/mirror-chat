@@ -30,7 +30,9 @@ export function Composer({
           input.value = "";
         }
       }}
-      className="rounded-3xl bg-surface p-4"
+      className={`rounded-3xl p-4 ${
+        variant === "creative" ? "bg-surface/80 backdrop-blur-xl" : "bg-surface"
+      }`}
     >
       <input
         name="message"
