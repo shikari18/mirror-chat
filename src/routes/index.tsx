@@ -10,9 +10,6 @@ import {
   ChevronDown,
   Copy,
   Ellipsis,
-  Globe,
-  ImageIcon,
-  SquarePen,
   RotateCcw,
   ThumbsDown,
   ThumbsUp,
@@ -27,6 +24,12 @@ import {
   createNewThread,
   type ChatThread,
 } from "@/lib/chat-threads";
+
+// Original 4 Card Assets
+import fanCam from "@/assets/card-fancam.jpg";
+import space from "@/assets/card-space.jpg";
+import mermaid from "@/assets/card-mermaid.jpg";
+import boxer from "@/assets/card-boxer.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -248,32 +251,41 @@ export function ChatIndex() {
       <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
 
       {messages.length === 0 ? (
-        <main className="flex flex-1 flex-col justify-center px-6 pb-28 space-y-4">
-          <div className="space-y-3.5 max-w-sm mx-auto w-full">
-            <button
-              onClick={() => handleSend("Generate an image of a futuristic neon city skyline")}
-              className="flex w-full items-center gap-3.5 rounded-2xl bg-surface/60 border border-border/40 p-4 text-left transition-colors hover:bg-surface"
-            >
-              <ImageIcon className="h-5 w-5 text-purple-400 shrink-0" />
-              <span className="text-[14.5px] font-medium text-foreground">Create an image</span>
-            </button>
-
-            <button
-              onClick={() => handleSend("Write a creative story or edit my text")}
-              className="flex w-full items-center gap-3.5 rounded-2xl bg-surface/60 border border-border/40 p-4 text-left transition-colors hover:bg-surface"
-            >
-              <SquarePen className="h-5 w-5 text-blue-400 shrink-0" />
-              <span className="text-[14.5px] font-medium text-foreground">Write or edit</span>
-            </button>
-
-            <button
-              onClick={() => handleSend("Search the web for current news and updates")}
-              className="flex w-full items-center gap-3.5 rounded-2xl bg-surface/60 border border-border/40 p-4 text-left transition-colors hover:bg-surface"
-            >
-              <Globe className="h-5 w-5 text-emerald-400 shrink-0" />
-              <span className="text-[14.5px] font-medium text-foreground">Search the web</span>
-            </button>
+        <main className="flex flex-1 flex-col items-center justify-center px-4 pb-28 text-center">
+          {/* Restored Original 4 Rotated UI Cards */}
+          <div className="relative mb-6 flex h-40 w-full max-w-xs items-center justify-center">
+            <img
+              src={fanCam}
+              alt="Card FanCam"
+              className="absolute left-4 top-2 h-28 w-20 rotate-[-12deg] rounded-xl object-cover shadow-lg border border-white/10"
+            />
+            <img
+              src={space}
+              alt="Card Space"
+              className="absolute left-16 top-0 h-32 w-22 rotate-[-4deg] rounded-xl object-cover shadow-xl border border-white/10"
+            />
+            <img
+              src={mermaid}
+              alt="Card Mermaid"
+              className="absolute right-16 top-0 h-32 w-22 rotate-[4deg] rounded-xl object-cover shadow-xl border border-white/10"
+            />
+            <img
+              src={boxer}
+              alt="Card Boxer"
+              className="absolute right-4 top-2 h-28 w-20 rotate-[12deg] rounded-xl object-cover shadow-lg border border-white/10"
+            />
           </div>
+
+          <p className="max-w-xs text-[13px] leading-relaxed text-muted-foreground">
+            Generate high-quality videos, graphics, and realistic photos with even more precision.
+          </p>
+
+          <button
+            onClick={() => handleSend("Tell me what you can do!")}
+            className="mt-4 rounded-full bg-foreground px-6 py-2 text-[13px] font-semibold text-background hover:opacity-90 transition-opacity"
+          >
+            Try Now
+          </button>
         </main>
       ) : (
         <main className="flex-1 space-y-5 px-4 pt-4 pb-28">
