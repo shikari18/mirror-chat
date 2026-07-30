@@ -348,25 +348,32 @@ export function setStoredApiKey(key: string): void {
   }
 }
 
-// Live web retrieval helper using DuckDuckGo / Wikipedia API
+// Fast live web retrieval with 1.2s timeout so web search NEVER stalls or causes delays
 async function performZuriWebSearch(query: string): Promise<string> {
   try {
     const cleanQuery = query.replace(/(search|look up|find|latest|current|today|news|weather)/gi, "").trim() || query;
     const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(cleanQuery)}&format=json&no_html=1&skip_disambig=1`;
-    const res = await fetch(url);
+    
+    // Strict 1.2 second timeout for lightning fast retrieval
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1200);
+
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
     if (!res.ok) return "";
 
     const data = await res.json();
     const entries: string[] = [];
 
     if (data.AbstractText) {
-      entries.push(`- **title**: ${data.Heading || cleanQuery}\n  - **source**: ${data.AbstractSource || "DuckDuckGo Direct Knowledge"}\n  - **publication date**: ${new Date().toISOString().split("T")[0]}\n  - **URL**: ${data.AbstractURL || "https://duckduckgo.com"}\n  - **summary**: ${data.AbstractText}`);
+      entries.push(`- **title**: ${data.Heading || cleanQuery}\n  - **source**: ${data.AbstractSource || "Official Source"}\n  - **publication date**: ${new Date().toISOString().split("T")[0]}\n  - **URL**: ${data.AbstractURL || "https://duckduckgo.com"}\n  - **summary**: ${data.AbstractText}`);
     }
 
     if (Array.isArray(data.RelatedTopics)) {
       data.RelatedTopics.slice(0, 3).forEach((item: any) => {
         if (item.Text && item.FirstURL) {
-          entries.push(`- **title**: ${item.Text.slice(0, 50)}...\n  - **source**: Web Source\n  - **publication date**: ${new Date().toISOString().split("T")[0]}\n  - **URL**: ${item.FirstURL}\n  - **summary**: ${item.Text}`);
+          entries.push(`- **title**: ${item.Text.slice(0, 45)}...\n  - **source**: Web Source\n  - **publication date**: ${new Date().toISOString().split("T")[0]}\n  - **URL**: ${item.FirstURL}\n  - **summary**: ${item.Text}`);
         }
       });
     }
@@ -374,8 +381,8 @@ async function performZuriWebSearch(query: string): Promise<string> {
     if (entries.length > 0) {
       return `\n\n[Zuri Search Sub-Agent Results]:\n${entries.join("\n\n")}`;
     }
-  } catch (err) {
-    console.warn("Zuri Web Search fetch failed:", err);
+  } catch {
+    /* Fast fallback if search times out */
   }
   return "";
 }
@@ -431,47 +438,51 @@ async function callOpenRouter(
 
 export async function fetchAIResponse(
   messages: Message[],
+  onStatusChange?: (status: "thinking..." | "Searching the web...") => void,
   customKey?: string
 ): Promise<string> {
   const userKey = (customKey !== undefined ? customKey : getStoredApiKey()).trim();
   const lastUserMsg = [...messages].reverse().find((m) => m.role === "user")?.text || "";
 
-  // Determine if search is requested or needed
-  const isSearchNeeded = /(search|look up|find|browse|latest|current|today|yesterday|this week|news|weather|price|stock|schedule)/i.test(lastUserMsg);
+  // Determine if web search is needed
+  const isSearchNeeded = /(search|look up|find|browse|latest|current|today|yesterday|this week|news|weather|price|stock|schedule|champion|winner|who won|score)/i.test(lastUserMsg);
+
   let webContext = "";
 
   if (isSearchNeeded && lastUserMsg) {
+    onStatusChange?.("Searching the web...");
     webContext = await performZuriWebSearch(lastUserMsg);
   }
 
-  // Attempt 1: User Key or Fallback Key
+  onStatusChange?.("thinking...");
+
+  // Attempt 1: Fast API execution with user key or default fallback key
   if (userKey) {
     try {
       let model = "openai/gpt-4o-mini";
       if (userKey.startsWith("gsk_")) model = "llama-3.3-70b-versatile";
       return await callOpenRouter(userKey, model, messages, webContext);
-    } catch (err: any) {
-      console.warn("Primary model failed, attempting openrouter/free model:", err);
+    } catch {
+      /* try free model */
     }
 
     try {
       return await callOpenRouter(userKey, "openrouter/free", messages, webContext);
-    } catch (err: any) {
-      console.warn("openrouter/free failed, attempting public fallback:", err);
+    } catch {
+      /* try fallback key */
     }
   }
 
-  // Fallback 2: Default key with openrouter/free
   const fallbackKey = getFallbackKey();
   if (fallbackKey && fallbackKey !== userKey) {
     try {
       return await callOpenRouter(fallbackKey, "openrouter/free", messages, webContext);
-    } catch (err: any) {
-      console.warn("Fallback key call failed:", err);
+    } catch {
+      /* try public fallback */
     }
   }
 
-  // Fallback 3: Free Public AI API (Pollinations GET format)
+  // Fallback 2: Direct Pollinations fast API
   try {
     const prompt = encodeURIComponent(
       `System: You are Zuri, the flagship AI assistant built and operated by KAIDO.\n${webContext}\nUser: ${lastUserMsg}`
@@ -482,11 +493,11 @@ export async function fetchAIResponse(
       const text = await response.text();
       if (text && text.trim()) return text.trim();
     }
-  } catch (error: any) {
-    console.error("Pollinations GET fallback error:", error);
+  } catch {
+    /* final persona fallback */
   }
 
-  // Fallback 4: Persona response
+  // Fallback 3: Persona response
   const userQuery = lastUserMsg.toLowerCase();
   if (userQuery.includes("hey") || userQuery.includes("hi") || userQuery.includes("hello")) {
     return "Hey! 😄 I'm Zuri, built by KAIDO. What's up?";

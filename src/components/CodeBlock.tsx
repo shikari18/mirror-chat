@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, ExternalLink, Globe } from "lucide-react";
 
 export function CodeBlock({
   language,
@@ -49,13 +49,86 @@ export function CodeBlock({
   );
 }
 
+function InlineTextFormatter({ text }: { text: string }) {
+  // Regex to match inline elements: links [label](url), source pills [label], bold **text**, inline `code`
+  const tokenRegex = /(\[[^\]]+\]\([^)]+\)|\[[^\]]+\]|\*\*[^*]+\*\*|`[^`]+`)/g;
+  const parts = text.split(tokenRegex);
+
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (!part) return null;
+
+        // Link with URL: [label](url)
+        if (part.startsWith("[") && part.includes("](") && part.endsWith(")")) {
+          const match = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+          if (match) {
+            const [, label, url] = match;
+            return (
+              <a
+                key={i}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-medium text-foreground/90 border border-border/60 hover:bg-surface transition-colors mx-0.5"
+              >
+                <Globe className="h-3 w-3 text-brand" />
+                <span>{label}</span>
+                <ExternalLink className="h-2.5 w-2.5 text-muted-foreground" />
+              </a>
+            );
+          }
+        }
+
+        // Source pill without URL: [UEFA.com +1] or [source]
+        if (part.startsWith("[") && part.endsWith("]") && !part.includes("(")) {
+          const label = part.slice(1, -1);
+          return (
+            <span
+              key={i}
+              className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-medium text-foreground/90 border border-border/60 mx-0.5 cursor-pointer hover:bg-surface transition-colors"
+            >
+              <Globe className="h-3 w-3 text-brand shrink-0" />
+              <span>{label}</span>
+            </span>
+          );
+        }
+
+        // Bold: **text**
+        if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+          return (
+            <strong key={i} className="font-semibold text-foreground">
+              {part.slice(2, -2)}
+            </strong>
+          );
+        }
+
+        // Inline code: `code`
+        if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
+          return (
+            <code
+              key={i}
+              className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-sm text-brand-foreground border border-border/50 mx-0.5"
+            >
+              {part.slice(1, -1)}
+            </code>
+          );
+        }
+
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
+
 export function FormattedMessage({ text }: { text: string }) {
-  // Regex to split code blocks ```lang ... ``` vs plain text
+  // Split into code blocks vs non-code text
   const parts = text.split(/(```[\s\S]*?```)/g);
 
   return (
-    <div className="space-y-2 leading-relaxed">
+    <div className="space-y-3 leading-relaxed">
       {parts.map((part, index) => {
+        // Code Block
         if (part.startsWith("```") && part.endsWith("```")) {
           const firstLineEnd = part.indexOf("\n");
           let language = "";
@@ -77,25 +150,52 @@ export function FormattedMessage({ text }: { text: string }) {
           );
         }
 
-        // Render plain text with inline code blocks `code`
-        const inlineParts = part.split(/(`[^`]+`)/g);
+        // Split paragraphs by blank lines \n\n
+        const paragraphs = part.split(/\n\n+/g);
 
         return (
-          <span key={index} className="whitespace-pre-wrap">
-            {inlineParts.map((sub, subIdx) => {
-              if (sub.startsWith("`") && sub.endsWith("`") && sub.length > 2) {
+          <div key={index} className="space-y-2">
+            {paragraphs.map((p, pIdx) => {
+              const trimmed = p.trim();
+              if (!trimmed) return null;
+
+              // Check if paragraph is a list (lines starting with - , * , • or 1. )
+              const lines = trimmed.split("\n");
+              const isList = lines.every((line) =>
+                /^\s*([-*•]|\d+\.)\s+/.test(line)
+              );
+
+              if (isList) {
                 return (
-                  <code
-                    key={subIdx}
-                    className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-sm text-brand-foreground border border-border/50"
-                  >
-                    {sub.slice(1, -1)}
-                  </code>
+                  <ul key={pIdx} className="my-2 space-y-1.5 pl-1">
+                    {lines.map((line, lIdx) => {
+                      const content = line.replace(/^\s*([-*•]|\d+\.)\s+/, "");
+                      return (
+                        <li key={lIdx} className="flex items-start gap-2 text-lg">
+                          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/60" />
+                          <span className="flex-1">
+                            <InlineTextFormatter text={content} />
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 );
               }
-              return sub;
+
+              // Normal paragraph with potential single line breaks
+              return (
+                <p key={pIdx} className="text-lg leading-relaxed">
+                  {lines.map((line, lIdx) => (
+                    <span key={lIdx}>
+                      <InlineTextFormatter text={line} />
+                      {lIdx < lines.length - 1 && <br />}
+                    </span>
+                  ))}
+                </p>
+              );
             })}
-          </span>
+          </div>
         );
       })}
     </div>

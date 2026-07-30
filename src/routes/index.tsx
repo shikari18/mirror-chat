@@ -105,6 +105,7 @@ export function ChatIndex() {
   const [activeThreadId, setActiveThreadState] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingStatus, setGeneratingStatus] = useState<"thinking..." | "Searching the web...">("thinking...");
   const [animatingIndex, setAnimatingIndex] = useState<number | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -132,7 +133,7 @@ export function ChatIndex() {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isGenerating]);
+  }, [messages, isGenerating, generatingStatus]);
 
   const persistMessages = (next: Message[]) => {
     setMessages(next);
@@ -168,9 +169,13 @@ export function ChatIndex() {
     const updatedWithUser = [...messages, userMessage];
     persistMessages(updatedWithUser);
     setIsGenerating(true);
+    setGeneratingStatus("thinking...");
 
     try {
-      const responseText = await fetchAIResponse(updatedWithUser);
+      const responseText = await fetchAIResponse(
+        updatedWithUser,
+        (status) => setGeneratingStatus(status)
+      );
       const assistantMessage: Message = {
         role: "assistant",
         text: responseText,
@@ -289,7 +294,7 @@ export function ChatIndex() {
           {isGenerating && (
             <div className="flex items-center gap-2 py-1">
               <span className="thinking-shimmer text-lg font-medium tracking-wide">
-                thinking...
+                {generatingStatus}
               </span>
             </div>
           )}
