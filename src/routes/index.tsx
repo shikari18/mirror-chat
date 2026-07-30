@@ -10,7 +10,7 @@ import {
   ChevronDown,
   Copy,
   Ellipsis,
-  Repeat2,
+  RotateCcw,
   ThumbsDown,
   ThumbsUp,
   Volume2,
@@ -137,7 +137,6 @@ export function ChatIndex() {
       }
     }
 
-    // Default to fresh empty state if no active thread
     setActiveThreadState(null);
     setMessages([]);
   }, []);
@@ -173,10 +172,10 @@ export function ChatIndex() {
     setAnimatingIndex(null);
   };
 
-  const handleSend = async (userText: string) => {
-    if (!userText.trim() || isGenerating) return;
+  const handleSend = async (userText: string, image?: string) => {
+    if ((!userText.trim() && !image) || isGenerating) return;
 
-    const userMessage: Message = { role: "user", text: userText.trim() };
+    const userMessage: Message = { role: "user", text: userText.trim(), image };
     const updatedWithUser = [...messages, userMessage];
     persistMessages(updatedWithUser);
     setIsGenerating(true);
@@ -198,11 +197,37 @@ export function ChatIndex() {
       console.error(err);
       const errorMessage: Message = {
         role: "assistant",
-        text: "Hey! 😊 I ran into a temporary connection bump, but I'm right here — what are you trying to work on?",
+        text: "I'm right here! 😊 Ran into a quick network delay — click the Retry button below to try again!",
       };
       const finalMessages = [...updatedWithUser, errorMessage];
       setAnimatingIndex(finalMessages.length - 1);
       persistMessages(finalMessages);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleRetry = async () => {
+    if (isGenerating || messages.length === 0) return;
+    // Remove last assistant message if present
+    const userMessagesOnly = messages.filter((_, i) => !(i === messages.length - 1 && messages[i].role === "assistant"));
+    setIsGenerating(true);
+    setGeneratingStatus("thinking...");
+
+    try {
+      const responseText = await fetchAIResponse(
+        userMessagesOnly,
+        (status) => setGeneratingStatus(status)
+      );
+      const assistantMessage: Message = {
+        role: "assistant",
+        text: responseText,
+      };
+      const finalMessages = [...userMessagesOnly, assistantMessage];
+      setAnimatingIndex(finalMessages.length - 1);
+      persistMessages(finalMessages);
+    } catch {
+      /* ignore */
     } finally {
       setIsGenerating(false);
     }
@@ -271,10 +296,19 @@ export function ChatIndex() {
         <main className="flex-1 space-y-6 px-4 pt-4 pb-28">
           {messages.map((m, i) =>
             m.role === "user" ? (
-              <div key={i} className="flex justify-end my-3">
-                <p className="max-w-[82%] rounded-3xl bg-[#2b2c32] px-4.5 py-3 text-[15px] text-white">
-                  {m.text}
-                </p>
+              <div key={i} className="flex flex-col items-end my-3 space-y-2">
+                {m.image && (
+                  <img
+                    src={m.image}
+                    alt="Uploaded attachment"
+                    className="max-h-60 max-w-[80%] rounded-2xl border border-white/20 shadow-md object-cover"
+                  />
+                )}
+                {m.text && (
+                  <p className="max-w-[82%] rounded-3xl bg-[#2b2c32] px-4.5 py-3 text-[15px] text-white">
+                    {m.text}
+                  </p>
+                )}
               </div>
             ) : (
               <div key={i} className="my-3">
@@ -292,10 +326,14 @@ export function ChatIndex() {
                     <Copy className="h-4 w-4" />
                   </button>
                   <Volume2 className="h-4 w-4 hover:text-foreground transition-colors" />
-                  <span className="flex items-center">
-                    <Repeat2 className="h-4 w-4 hover:text-foreground transition-colors" />
+                  <button
+                    onClick={handleRetry}
+                    aria-label="Regenerate response"
+                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                  >
+                    <RotateCcw className="h-4 w-4" />
                     <ChevronDown className="h-3.5 w-3.5" />
-                  </span>
+                  </button>
                   <ThumbsUp className="h-4 w-4 hover:text-foreground transition-colors" />
                   <ThumbsDown className="h-4 w-4 hover:text-foreground transition-colors" />
                   <Ellipsis className="h-4 w-4 hover:text-foreground transition-colors" />
@@ -320,7 +358,7 @@ export function ChatIndex() {
       <footer className="sticky bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-background via-background/90 to-transparent pt-2 pb-4 px-3">
         <Composer
           placeholder="Ask anything"
-          onSend={(text) => handleSend(text)}
+          onSend={(text, image) => handleSend(text, image)}
         />
       </footer>
     </div>
