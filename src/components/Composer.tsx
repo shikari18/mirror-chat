@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   ArrowUp,
   AudioLines,
@@ -25,6 +25,7 @@ export function Composer({
   const [menuOpen, setMenuOpen] = useState(false);
   const [deepThink, setDeepThink] = useState(false);
 
+  const inputRef = useRef<HTMLDivElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -44,9 +45,11 @@ export function Composer({
   };
 
   const handleSubmit = () => {
-    if (text.trim() || selectedImage) {
-      const fullText = deepThink ? `[DeepThink Mode Active]\n${text.trim()}` : text.trim();
+    const currentText = inputRef.current?.innerText || text;
+    if (currentText.trim() || selectedImage) {
+      const fullText = deepThink ? `[DeepThink Mode Active]\n${currentText.trim()}` : currentText.trim();
       onSend?.(fullText, selectedImage || undefined);
+      if (inputRef.current) inputRef.current.innerText = "";
       setText("");
       setSelectedImage(null);
     }
@@ -126,7 +129,7 @@ export function Composer({
           >
             <span
               className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-                deepThink ? "bg-brand text-brand-foreground" : "bg-surface-2 text-amber-400"
+                deepThink ? "bg-white text-black" : "bg-surface-2 text-amber-400"
               }`}
             >
               <Brain className="h-4 w-4" />
@@ -162,7 +165,7 @@ export function Composer({
         </div>
       )}
 
-      {/* Non-form Standalone Container to Completely Disable iOS Form Accessory Bar */}
+      {/* Pure Black & White Input Container (No Form, ContentEditable for Zero iOS Keyboard Accessory Bar) */}
       <div
         className={`flex items-center gap-2 rounded-full bg-black/40 backdrop-blur-2xl border border-white/15 px-3.5 py-2.5 shadow-2xl transition-all duration-200 ${
           variant === "creative" ? "bg-black/50" : ""
@@ -173,33 +176,41 @@ export function Composer({
           aria-label="Add attachment"
           onClick={() => setMenuOpen(!menuOpen)}
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
-            menuOpen ? "bg-surface-2 text-foreground" : "text-foreground/70 hover:text-foreground hover:bg-surface-2"
+            menuOpen ? "bg-white/15 text-white" : "text-white/70 hover:text-white hover:bg-white/10"
           }`}
         >
           <Plus className="h-5 w-5" />
         </button>
 
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSubmit();
-            }
-          }}
-          enterKeyHint="send"
-          inputMode="text"
-          className="w-full min-w-0 bg-transparent text-[14px] text-foreground outline-none placeholder:text-muted-foreground/60 px-1"
-          placeholder={deepThink ? "Ask anything (DeepThink active)..." : placeholder}
-          aria-label="Message"
-        />
+        {/* ContentEditable Div completely eliminates iOS Safari form accessory toolbar (^ ∨ ✓) */}
+        <div className="relative flex-1 min-w-0 flex items-center">
+          <div
+            ref={inputRef}
+            contentEditable
+            role="textbox"
+            aria-multiline="false"
+            aria-label="Message"
+            onInput={() => setText(inputRef.current?.innerText || "")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+            className="w-full min-w-0 bg-transparent text-[14px] text-white outline-none max-h-24 overflow-y-auto px-1 leading-normal whitespace-pre-wrap select-text"
+          />
+          {!text && (
+            <span className="pointer-events-none absolute left-1 text-[14px] text-white/40 select-none">
+              {deepThink ? "Ask anything (DeepThink active)..." : placeholder}
+            </span>
+          )}
+        </div>
 
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             aria-label="Voice input"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/70 hover:text-foreground transition-colors"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-white/70 hover:text-white transition-colors"
           >
             <Mic className="h-5 w-5" />
           </button>
@@ -218,7 +229,7 @@ export function Composer({
               type="button"
               onClick={handleSubmit}
               aria-label="Voice mode"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#3b82f6] text-white transition-transform active:scale-95 shadow-md hover:bg-blue-600"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition-transform active:scale-95 shadow-md hover:bg-white/20 border border-white/10"
             >
               <AudioLines className="h-5 w-5" />
             </button>
