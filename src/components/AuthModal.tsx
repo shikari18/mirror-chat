@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { X, Check } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 
+const DEFAULT_GOOGLE_CLIENT_ID =
+  "145932144269-r368ordsgp037pskq43ihvgjanj4honr.apps.googleusercontent.com";
+
 export function AuthModal({
   open,
   onOpenChange,
@@ -11,10 +14,37 @@ export function AuthModal({
 }) {
   const [mode, setMode] = useState<"options" | "email" | "success">("options");
   const [email, setEmail] = useState("");
-  const [user, setUser] = useState<{ email: string; name?: string; avatar?: string } | null>(null);
+  const [user, setUser] = useState<{ email: string; name?: string; picture?: string } | null>(null);
 
+  // Check for Google OAuth hash callback (#access_token=...)
   useEffect(() => {
     try {
+      const hash = window.location.hash;
+      if (hash.includes("access_token=")) {
+        const params = new URLSearchParams(hash.replace("#", "?"));
+        const token = params.get("access_token");
+        if (token) {
+          fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.email) {
+                const loggedUser = {
+                  email: data.email,
+                  name: data.name || data.email.split("@")[0],
+                  picture: data.picture,
+                };
+                setUser(loggedUser);
+                localStorage.setItem("zuri_user", JSON.stringify(loggedUser));
+                // Clean hash from URL
+                window.history.replaceState(null, "", window.location.pathname);
+              }
+            })
+            .catch(() => {});
+        }
+      }
+
       const stored = localStorage.getItem("zuri_user");
       if (stored) setUser(JSON.parse(stored));
     } catch {
@@ -25,25 +55,16 @@ export function AuthModal({
   if (!open) return null;
 
   const handleGoogleLogin = () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    
-    if (clientId) {
-      const redirectUri = window.location.origin;
-      const scope = "email profile";
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
-      window.location.href = authUrl;
-      return;
-    }
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
+    const redirectUri = window.location.origin;
+    const scope = "email profile";
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
+      clientId
+    )}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(
+      scope
+    )}`;
 
-    // Demo Google Login fallback
-    const loggedUser = { email: "user.google@gmail.com", name: "Google User" };
-    setUser(loggedUser);
-    localStorage.setItem("zuri_user", JSON.stringify(loggedUser));
-    setMode("success");
-    setTimeout(() => {
-      onOpenChange(false);
-      setMode("options");
-    }, 1500);
+    window.location.href = authUrl;
   };
 
   const handleLogin = (provider: string) => {
@@ -174,7 +195,7 @@ export function AuthModal({
             </div>
             <h3 className="text-xl font-semibold">Welcome to Zuri!</h3>
             <p className="text-sm text-muted-foreground">
-              Signed in as {user?.email}
+              Signed in as {user?.name || user?.email}
             </p>
           </div>
         )}
