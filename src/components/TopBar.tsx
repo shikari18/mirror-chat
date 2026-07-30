@@ -34,7 +34,7 @@ export function TopBar({
             key={t}
             role="tab"
             aria-selected={tab === t}
-            onClick={() => navigate({ to: t === "chat" ? "/chat" : "/" })}
+            onClick={() => navigate({ to: t === "chat" ? "/" : "/creative" })}
             className={`rounded-full px-6 py-2.5 text-base capitalize transition-colors ${
               tab === t
                 ? "bg-primary font-medium text-primary-foreground"

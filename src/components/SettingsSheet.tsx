@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   Sheet,
   SheetContent,
@@ -9,9 +10,11 @@ import {
   ArrowRight,
   ArrowUpRight,
   Bell,
+  Check,
   CircleHelp,
   Crown,
   Fingerprint,
+  Key,
   Keyboard,
   Languages,
   Lock,
@@ -26,6 +29,7 @@ import {
   Vibrate,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { getStoredApiKey, setStoredApiKey } from "@/lib/ai-api";
 
 export function SettingsSheet({
   open,
@@ -34,6 +38,22 @@ export function SettingsSheet({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
+  const [apiKey, setApiKey] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setApiKey(getStoredApiKey());
+      setSaved(false);
+    }
+  }, [open]);
+
+  const handleSaveApiKey = () => {
+    setStoredApiKey(apiKey);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -47,6 +67,38 @@ export function SettingsSheet({
         </SheetHeader>
 
         <div className="px-6 pb-10">
+          <h3 className="mt-2 mb-3 text-xl text-muted-foreground">AI API Configuration</h3>
+          <div className="rounded-2xl bg-background p-4 space-y-3 border border-border">
+            <div className="flex items-center gap-3">
+              <Key className="h-5 w-5 text-brand shrink-0" />
+              <span className="text-base font-medium">AI API Key</span>
+              <span className="ml-auto text-xs px-2.5 py-1 rounded-full bg-surface-2 text-muted-foreground font-mono">
+                {apiKey ? "Custom Key Active" : "Public AI Active"}
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Connected to Public API out-of-the-box. Enter your custom OpenAI, Groq, or OpenRouter API key below to connect your own key.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk-..."
+                className="flex-1 rounded-xl bg-surface px-3 py-2 text-sm text-foreground outline-none border border-border focus:border-brand"
+              />
+              <button
+                type="button"
+                onClick={handleSaveApiKey}
+                className="rounded-xl bg-brand px-4 py-2 text-sm font-medium text-brand-foreground hover:opacity-90 flex items-center gap-1 shrink-0"
+              >
+                {saved ? <Check className="h-4 w-4" /> : null}
+                {saved ? "Saved" : "Save"}
+              </button>
+            </div>
+          </div>
+
+          <h3 className="mt-7 mb-3 text-xl text-muted-foreground">Preferences</h3>
           <Group>
             <Item icon={<UserRound />} label="Profile" trailing={<ArrowRight className="h-4 w-4" />} />
             <Item icon={<Bell />} label="Notifications" trailing={<Switch defaultChecked />} />
