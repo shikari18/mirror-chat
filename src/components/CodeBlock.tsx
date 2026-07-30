@@ -17,7 +17,7 @@ export function CodeBlock({
   };
 
   return (
-    <div className="my-3 overflow-hidden rounded-2xl border border-border bg-[#0e0e13] shadow-md">
+    <div className="my-3 overflow-hidden rounded-2xl border border-border/80 bg-[#0e0e13] shadow-md">
       <div className="flex items-center justify-between border-b border-border/60 bg-surface-2/60 px-4 py-2 text-xs font-mono text-muted-foreground">
         <span className="font-semibold uppercase tracking-wider text-brand">
           {language || "code"}
@@ -50,17 +50,36 @@ export function CodeBlock({
 }
 
 function InlineTextFormatter({ text }: { text: string }) {
-  // Strip raw BR HTML tags or uppercase BR artifacts
-  const cleanText = text.replace(/<br\s*\/?>/gi, "").replace(/\s+BR\b/g, "");
+  // Clean raw BR tags or unparsed header markers
+  let clean = text.replace(/<br\s*\/?>/gi, "").replace(/\s+BR\b/g, "");
 
-  // Match inline elements: links [label](url), source pills [label], bold **text**, inline `code`
-  const tokenRegex = /(\[[^\]]+\]\([^)]+\)|\[[^\]]+\]|\*\*[^*]+\*\*|`[^`]+`)/g;
-  const parts = cleanText.split(tokenRegex);
+  // Remove leftover leading # or ## if present
+  clean = clean.replace(/^(#{1,6})\s+/, "");
+
+  // Match inline tokens: images ![alt](url), links [label](url), source pills [label], bold **text**, inline `code`
+  const tokenRegex = /(!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|\[[^\]]+\]|\*\*[^*]+\*\*|`[^`]+`)/g;
+  const parts = clean.split(tokenRegex);
 
   return (
     <>
       {parts.map((part, i) => {
         if (!part) return null;
+
+        // Image: ![alt](url)
+        if (part.startsWith("![") && part.includes("](") && part.endsWith(")")) {
+          const imgMatch = part.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+          if (imgMatch) {
+            const [, alt, url] = imgMatch;
+            return (
+              <img
+                key={i}
+                src={url}
+                alt={alt || "Image"}
+                className="my-3 rounded-2xl max-h-72 w-full object-cover border border-border/40 shadow-lg"
+              />
+            );
+          }
+        }
 
         // Link with URL: [label](url)
         if (part.startsWith("[") && part.includes("](") && part.endsWith(")")) {
@@ -73,17 +92,16 @@ function InlineTextFormatter({ text }: { text: string }) {
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-medium text-foreground/90 border border-border/60 hover:bg-surface transition-colors mx-0.5"
+                className="inline-flex items-center gap-1 text-brand hover:underline font-medium mx-0.5"
               >
-                <Globe className="h-3 w-3 text-brand" />
                 <span>{label}</span>
-                <ExternalLink className="h-2.5 w-2.5 text-muted-foreground" />
+                <ExternalLink className="h-3 w-3 inline shrink-0" />
               </a>
             );
           }
         }
 
-        // Source pill without URL: [UEFA.com +1] or [source]
+        // Source pill without URL: [UEFA.com] or [source]
         if (part.startsWith("[") && part.endsWith("]") && !part.includes("(")) {
           const label = part.slice(1, -1);
           return (
@@ -100,7 +118,7 @@ function InlineTextFormatter({ text }: { text: string }) {
         // Bold: **text**
         if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
           return (
-            <strong key={i} className="font-bold text-foreground">
+            <strong key={i} className="font-semibold text-white">
               {part.slice(2, -2)}
             </strong>
           );
@@ -170,10 +188,11 @@ function TableBlock({ lines }: { lines: string[] }) {
 }
 
 export function FormattedMessage({ text }: { text: string }) {
+  // Split into code blocks vs non-code text
   const parts = text.split(/(```[\s\S]*?```)/g);
 
   return (
-    <div className="space-y-2.5 leading-relaxed text-base">
+    <div className="space-y-3 leading-relaxed text-base text-foreground/95">
       {parts.map((part, index) => {
         // Code Block
         if (part.startsWith("```") && part.endsWith("```")) {
@@ -197,10 +216,11 @@ export function FormattedMessage({ text }: { text: string }) {
           );
         }
 
+        // Paragraphs split by blank lines \n\n
         const paragraphs = part.split(/\n\n+/g);
 
         return (
-          <div key={index} className="space-y-2.5">
+          <div key={index} className="space-y-3">
             {paragraphs.map((p, pIdx) => {
               const trimmed = p.trim();
               if (!trimmed) return null;
@@ -213,51 +233,32 @@ export function FormattedMessage({ text }: { text: string }) {
                 return <TableBlock key={pIdx} lines={lines} />;
               }
 
-              // Header Check (#, ##, ###, ####)
+              // Headers (#, ##, ###, ####)
               if (trimmed.startsWith("#")) {
-                const headerMatch = trimmed.match(/^(#{1,6})\s+(.+)$/s);
-                if (headerMatch) {
-                  const level = headerMatch[1].length;
-                  const headerText = headerMatch[2];
-
-                  if (level === 1) {
-                    return (
-                      <h1 key={pIdx} className="mt-3 mb-1.5 text-xl font-bold tracking-tight text-foreground">
-                        <InlineTextFormatter text={headerText} />
-                      </h1>
-                    );
-                  }
-                  if (level === 2) {
-                    return (
-                      <h2 key={pIdx} className="mt-3 mb-1 text-lg font-bold tracking-tight text-foreground">
-                        <InlineTextFormatter text={headerText} />
-                      </h2>
-                    );
-                  }
-                  return (
-                    <h3 key={pIdx} className="mt-2 mb-1 text-base font-semibold text-foreground">
-                      <InlineTextFormatter text={headerText} />
-                    </h3>
-                  );
-                }
+                const headerText = trimmed.replace(/^(#{1,6})\s+/, "");
+                return (
+                  <div key={pIdx} className="mt-3 mb-1 text-base font-semibold text-white">
+                    <InlineTextFormatter text={headerText} />
+                  </div>
+                );
               }
 
-              // List Check (- , * , • or 1. )
+              // Bullet List Check (- , * , • or 1. )
               const isList = lines.every((line) =>
                 /^\s*([-*•]|\d+\.)\s+/.test(line)
               );
 
               if (isList) {
                 return (
-                  <ul key={pIdx} className="my-1.5 space-y-1 pl-1">
+                  <ul key={pIdx} className="my-2 space-y-2 pl-0">
                     {lines.map((line, lIdx) => {
                       const content = line.replace(/^\s*([-*•]|\d+\.)\s+/, "");
                       return (
-                        <li key={lIdx} className="flex items-start gap-2 text-base">
-                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/70" />
-                          <span className="flex-1">
+                        <li key={lIdx} className="flex items-start gap-2.5 text-base">
+                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/60 select-none" />
+                          <div className="flex-1 leading-relaxed">
                             <InlineTextFormatter text={content} />
-                          </span>
+                          </div>
                         </li>
                       );
                     })}
@@ -269,12 +270,14 @@ export function FormattedMessage({ text }: { text: string }) {
               return (
                 <p key={pIdx} className="text-base leading-relaxed">
                   {lines.map((line, lIdx) => {
-                    if (/^(#{1,6})\s+/.test(line.trim())) {
-                      const hText = line.trim().replace(/^(#{1,6})\s+/, "");
+                    const lineTrimmed = line.trim();
+                    // Handle inline ## headers
+                    if (/^(#{1,6})\s+/.test(lineTrimmed)) {
+                      const hText = lineTrimmed.replace(/^(#{1,6})\s+/, "");
                       return (
-                        <strong key={lIdx} className="block mt-2 mb-1 text-lg font-bold text-foreground">
+                        <span key={lIdx} className="block mt-3 mb-1 text-base font-semibold text-white">
                           <InlineTextFormatter text={hText} />
-                        </strong>
+                        </span>
                       );
                     }
 
