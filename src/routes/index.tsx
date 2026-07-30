@@ -105,6 +105,7 @@ export function ChatIndex() {
   const [generatingStatus, setGeneratingStatus] = useState<"thinking..." | "Searching the web...">("thinking...");
   const [animatingIndex, setAnimatingIndex] = useState<number | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Auto open AuthModal on first launch if user is not signed in
   useEffect(() => {
@@ -154,6 +155,7 @@ export function ChatIndex() {
   };
 
   const handleNewChat = () => {
+    handleStop();
     setActiveThreadId(null);
     setActiveThreadState(null);
     setMessages([]);
@@ -161,10 +163,19 @@ export function ChatIndex() {
   };
 
   const handleSelectThread = (thread: ChatThread) => {
+    handleStop();
     setActiveThreadId(thread.id);
     setActiveThreadState(thread.id);
     setMessages(thread.messages);
     setAnimatingIndex(null);
+  };
+
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsGenerating(false);
   };
 
   const handleSend = async (userText: string, image?: string) => {
@@ -175,6 +186,8 @@ export function ChatIndex() {
     persistMessages(updatedWithUser);
     setIsGenerating(true);
     setGeneratingStatus("thinking...");
+
+    abortControllerRef.current = new AbortController();
 
     try {
       const responseText = await fetchAIResponse(
@@ -188,7 +201,10 @@ export function ChatIndex() {
       const finalMessages = [...updatedWithUser, assistantMessage];
       setAnimatingIndex(finalMessages.length - 1);
       persistMessages(finalMessages);
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.name === "AbortError") {
+        return;
+      }
       console.error(err);
       const errorMessage: Message = {
         role: "assistant",
@@ -199,6 +215,7 @@ export function ChatIndex() {
       persistMessages(finalMessages);
     } finally {
       setIsGenerating(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -353,7 +370,9 @@ export function ChatIndex() {
       <footer className="sticky bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-background via-background/90 to-transparent pt-2 pb-4 px-3">
         <Composer
           placeholder="Ask anything"
+          isGenerating={isGenerating}
           onSend={(text, image) => handleSend(text, image)}
+          onStop={handleStop}
         />
       </footer>
     </div>

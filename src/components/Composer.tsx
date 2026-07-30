@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import {
   ArrowUp,
   AudioLines,
@@ -8,16 +8,21 @@ import {
   Image as ImageIcon,
   Mic,
   Plus,
+  Square,
   X,
 } from "lucide-react";
 
 export function Composer({
   placeholder = "Ask anything",
   onSend,
+  onStop,
+  isGenerating = false,
   variant = "chat",
 }: {
   placeholder?: string;
   onSend?: (text: string, image?: string) => void;
+  onStop?: () => void;
+  isGenerating?: boolean;
   variant?: "chat" | "creative";
 }) {
   const [text, setText] = useState("");
@@ -45,6 +50,11 @@ export function Composer({
   };
 
   const handleSubmit = () => {
+    if (isGenerating) {
+      onStop?.();
+      return;
+    }
+
     const currentText = inputRef.current?.innerText || text;
     if (currentText.trim() || selectedImage) {
       const fullText = deepThink ? `[DeepThink Mode Active]\n${currentText.trim()}` : currentText.trim();
@@ -84,7 +94,7 @@ export function Composer({
       />
 
       {/* Plus Attachment Popup Drawer */}
-      {menuOpen && (
+      {menuOpen && !isGenerating && (
         <div className="absolute bottom-16 left-0 z-50 w-64 overflow-hidden rounded-2xl border border-white/15 bg-[#18191e]/95 backdrop-blur-2xl p-2 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
           <button
             type="button"
@@ -149,13 +159,15 @@ export function Composer({
         <div className="mb-2 flex items-center gap-2 pl-2">
           <div className="relative h-14 w-14 overflow-hidden rounded-xl border border-white/20 shadow-md">
             <img src={selectedImage} alt="Attachment" className="h-full w-full object-cover" />
-            <button
-              type="button"
-              onClick={() => setSelectedImage(null)}
-              className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white hover:bg-black"
-            >
-              <X className="h-3 w-3" />
-            </button>
+            {!isGenerating && (
+              <button
+                type="button"
+                onClick={() => setSelectedImage(null)}
+                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white hover:bg-black"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
           </div>
           {deepThink && (
             <span className="flex items-center gap-1 rounded-full bg-amber-500/20 px-3 py-1 text-xs font-semibold text-amber-400 border border-amber-500/40">
@@ -165,7 +177,7 @@ export function Composer({
         </div>
       )}
 
-      {/* Pure Black & White Input Container (No Form, ContentEditable for Zero iOS Keyboard Accessory Bar) */}
+      {/* Input Container */}
       <div
         className={`flex items-center gap-2 rounded-full bg-black/40 backdrop-blur-2xl border border-white/15 px-3.5 py-2.5 shadow-2xl transition-all duration-200 ${
           variant === "creative" ? "bg-black/50" : ""
@@ -173,20 +185,25 @@ export function Composer({
       >
         <button
           type="button"
+          disabled={isGenerating}
           aria-label="Add attachment"
           onClick={() => setMenuOpen(!menuOpen)}
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
-            menuOpen ? "bg-white/15 text-white" : "text-white/70 hover:text-white hover:bg-white/10"
+            isGenerating
+              ? "opacity-40 cursor-not-allowed text-white/40"
+              : menuOpen
+              ? "bg-white/15 text-white"
+              : "text-white/70 hover:text-white hover:bg-white/10"
           }`}
         >
           <Plus className="h-5 w-5" />
         </button>
 
-        {/* ContentEditable Div completely eliminates iOS Safari form accessory toolbar (^ ∨ ✓) */}
+        {/* ContentEditable Div (Disabled when isGenerating) */}
         <div className="relative flex-1 min-w-0 flex items-center">
           <div
             ref={inputRef}
-            contentEditable
+            contentEditable={!isGenerating}
             role="textbox"
             aria-multiline="false"
             aria-label="Message"
@@ -197,25 +214,43 @@ export function Composer({
                 handleSubmit();
               }
             }}
-            className="w-full min-w-0 bg-transparent text-[14px] text-white outline-none max-h-24 overflow-y-auto px-1 leading-normal whitespace-pre-wrap select-text"
+            className={`w-full min-w-0 bg-transparent text-[14px] text-white outline-none max-h-24 overflow-y-auto px-1 leading-normal whitespace-pre-wrap ${
+              isGenerating ? "opacity-50 cursor-not-allowed select-none" : "select-text"
+            }`}
           />
           {!text && (
             <span className="pointer-events-none absolute left-1 text-[14px] text-white/40 select-none">
-              {deepThink ? "Ask anything (DeepThink active)..." : placeholder}
+              {isGenerating
+                ? "Zuri is replying..."
+                : deepThink
+                ? "Ask anything (DeepThink active)..."
+                : placeholder}
             </span>
           )}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            aria-label="Voice input"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-white/70 hover:text-white transition-colors"
-          >
-            <Mic className="h-5 w-5" />
-          </button>
+          {!isGenerating && (
+            <button
+              type="button"
+              aria-label="Voice input"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-white/70 hover:text-white transition-colors"
+            >
+              <Mic className="h-5 w-5" />
+            </button>
+          )}
 
-          {hasContent ? (
+          {/* Action Button: Changes to Stop button when isGenerating */}
+          {isGenerating ? (
+            <button
+              type="button"
+              onClick={onStop}
+              aria-label="Stop generating"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black font-bold transition-transform active:scale-95 shadow-md hover:bg-white/90"
+            >
+              <Square className="h-4 w-4 fill-black text-black" />
+            </button>
+          ) : hasContent ? (
             <button
               type="button"
               onClick={handleSubmit}
