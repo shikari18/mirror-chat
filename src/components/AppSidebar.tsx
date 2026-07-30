@@ -16,6 +16,7 @@ import {
   MessageSquare,
   User,
   Trash2,
+  LogIn,
 } from "lucide-react";
 import {
   loadThreads,
@@ -29,22 +30,31 @@ export function AppSidebar({
   open,
   onOpenChange,
   onOpenSettings,
+  onOpenAuth,
   onSelectThread,
   onNewChat,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onOpenSettings: () => void;
+  onOpenAuth?: () => void;
   onSelectThread?: (thread: ChatThread) => void;
   onNewChat?: () => void;
 }) {
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [user, setUser] = useState<{ email: string } | null>(null);
   const activeId = getActiveThreadId();
 
   useEffect(() => {
     if (open) {
       setThreads(loadThreads());
+      try {
+        const stored = localStorage.getItem("zuri_user");
+        if (stored) setUser(JSON.parse(stored));
+      } catch {
+        /* storage unavailable */
+      }
     }
   }, [open]);
 
@@ -69,12 +79,25 @@ export function AppSidebar({
         </SheetHeader>
 
         <div className="px-5 pt-4 pb-6">
-          <button className="flex w-full items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-2">
+          <button
+            onClick={() => {
+              onOpenChange(false);
+              onOpenAuth?.();
+            }}
+            className="flex w-full items-center gap-3 rounded-2xl p-2.5 hover:bg-surface transition-colors text-left"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2">
               <User className="h-5 w-5 text-foreground/70" />
             </span>
-            <span className="text-lg font-semibold">User</span>
-            <ChevronRight className="ml-auto h-5 w-5 text-foreground/60" />
+            <div className="flex-1 min-w-0">
+              <span className="block truncate text-lg font-semibold">
+                {user ? user.email.split("@")[0] : "Sign in / Register"}
+              </span>
+              <span className="block truncate text-xs text-muted-foreground">
+                {user ? user.email : "Tap to log in or create account"}
+              </span>
+            </div>
+            <ChevronRight className="ml-auto h-5 w-5 shrink-0 text-foreground/60" />
           </button>
 
           <Link

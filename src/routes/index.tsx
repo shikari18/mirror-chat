@@ -5,6 +5,7 @@ import { SettingsSheet } from "@/components/SettingsSheet";
 import { TopBar } from "@/components/TopBar";
 import { Composer } from "@/components/Composer";
 import { FormattedMessage } from "@/components/CodeBlock";
+import { AuthModal } from "@/components/AuthModal";
 import {
   ChevronDown,
   Copy,
@@ -102,6 +103,7 @@ function TypewriterText({
 export function ChatIndex() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
   const [activeThreadId, setActiveThreadState] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -213,10 +215,12 @@ export function ChatIndex() {
           setMenuOpen(false);
           setSettingsOpen(true);
         }}
+        onOpenAuth={() => setAuthOpen(true)}
         onSelectThread={handleSelectThread}
         onNewChat={handleNewChat}
       />
       <SettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
 
       {messages.length === 0 ? (
         <main className="flex flex-1 flex-col justify-center gap-6 pb-4">
