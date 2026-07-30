@@ -317,7 +317,7 @@ export function ChatIndex() {
                   />
                 )}
                 {m.text && (
-                  <p className="max-w-[82%] rounded-3xl bg-[#2b2c32] px-4 py-2.5 text-[14px] text-white">
+                  <p className="max-w-[82%] rounded-3xl bg-[#212121] border border-white/10 px-4 py-2.5 text-[14px] text-white">
                     {m.text}
                   </p>
                 )}

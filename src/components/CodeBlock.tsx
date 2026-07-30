@@ -95,7 +95,6 @@ export function CodeBlock({
 function InlineTextFormatter({ text }: { text: string }) {
   let clean = text.replace(/<br\s*\/?>/gi, "").replace(/\s+BR\b/g, "");
 
-  // Split tokens: Images, Links, Bold-Italic, Bold, Strikethrough, Italics, Code, Checkboxes
   const tokenRegex = /(!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|\[[^\]]+\]|\*\*\*[^*]+\*\*\*|___[^_]+___|\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|\*[^*]+\*|_[^_]+_|`[^`]+`)/g;
   const parts = clean.split(tokenRegex);
 
@@ -222,7 +221,7 @@ function MarkdownTable({ lines }: { lines: string[] }) {
   if (lines.length < 2) return null;
 
   const headerLine = lines[0];
-  const bodyLines = lines.slice(2); // skip divider line |---|---|
+  const bodyLines = lines.slice(2);
 
   const parseRow = (line: string) =>
     line
@@ -312,7 +311,7 @@ export function FormattedMessage({ text }: { text: string }) {
                 return <MarkdownTable key={pIdx} lines={lines} />;
               }
 
-              // Blockquotes (> quote or >> nested quote)
+              // Blockquotes (> quote or >> nested quote) with crisp ChatGPT left border
               if (trimmed.startsWith(">")) {
                 const quoteText = trimmed.replace(/^>+\s*/, "");
                 const isNested = trimmed.startsWith(">>");
@@ -320,8 +319,8 @@ export function FormattedMessage({ text }: { text: string }) {
                 return (
                   <blockquote
                     key={pIdx}
-                    className={`my-2 pl-3.5 py-1.5 italic bg-white/5 rounded-r-xl border-l-3 text-white/90 text-[13.5px] ${
-                      isNested ? "border-purple-400 ml-4" : "border-blue-400"
+                    className={`my-3 pl-4 py-2 italic bg-white/5 rounded-r-xl border-l-2 text-white/90 text-[14px] shadow-sm ${
+                      isNested ? "border-purple-400 ml-4 bg-purple-500/10" : "border-white/60"
                     }`}
                   >
                     <InlineTextFormatter text={quoteText} />

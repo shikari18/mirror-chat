@@ -31,21 +31,26 @@ export function Composer({
   const [deepThink, setDeepThink] = useState(false);
 
   const inputRef = useRef<HTMLDivElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setSelectedImage(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+  // Dynamically trigger file pickers in JS memory without rendering <input> tags in DOM
+  const openFilePicker = (accept: string, capture?: string) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = accept;
+    if (capture) input.capture = capture;
+    input.onchange = (e: any) => {
+      const file = e.target?.files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            setSelectedImage(event.target.result as string);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
     setMenuOpen(false);
   };
 
@@ -69,39 +74,15 @@ export function Composer({
 
   return (
     <div className="relative w-full">
-      {/* Hidden File Inputs */}
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleFileChange}
-        className="hidden"
-      />
-      <input
-        ref={photoInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileChange}
-        className="hidden"
-      />
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="*/*"
-        onChange={handleFileChange}
-        className="hidden"
-      />
-
       {/* Plus Attachment Popup Drawer */}
       {menuOpen && !isGenerating && (
         <div className="absolute bottom-16 left-0 z-50 w-64 overflow-hidden rounded-2xl border border-white/15 bg-[#18191e]/95 backdrop-blur-2xl p-2 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
           <button
             type="button"
-            onClick={() => cameraInputRef.current?.click()}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-surface-2 transition-colors text-left"
+            onClick={() => openFilePicker("image/*", "environment")}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-white/10 transition-colors text-left"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-2 text-brand">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white">
               <Camera className="h-4 w-4" />
             </span>
             <span>Camera</span>
@@ -109,10 +90,10 @@ export function Composer({
 
           <button
             type="button"
-            onClick={() => photoInputRef.current?.click()}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-surface-2 transition-colors text-left"
+            onClick={() => openFilePicker("image/*")}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-white/10 transition-colors text-left"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-2 text-blue-400">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-blue-400">
               <ImageIcon className="h-4 w-4" />
             </span>
             <span>Photos</span>
@@ -120,10 +101,10 @@ export function Composer({
 
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-surface-2 transition-colors text-left"
+            onClick={() => openFilePicker("*/*")}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-white/10 transition-colors text-left"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-2 text-purple-400">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-purple-400">
               <FileText className="h-4 w-4" />
             </span>
             <span>Files</span>
@@ -135,11 +116,11 @@ export function Composer({
               setDeepThink(!deepThink);
               setMenuOpen(false);
             }}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-surface-2 transition-colors text-left"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-white/10 transition-colors text-left"
           >
             <span
               className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-                deepThink ? "bg-white text-black" : "bg-surface-2 text-amber-400"
+                deepThink ? "bg-white text-black" : "bg-white/10 text-amber-400"
               }`}
             >
               <Brain className="h-4 w-4" />
@@ -177,10 +158,10 @@ export function Composer({
         </div>
       )}
 
-      {/* Input Container */}
+      {/* Monochrome Black & White Input Container (0 HTML <input> tags in DOM) */}
       <div
-        className={`flex items-center gap-2 rounded-full bg-black/40 backdrop-blur-2xl border border-white/15 px-3.5 py-2.5 shadow-2xl transition-all duration-200 ${
-          variant === "creative" ? "bg-black/50" : ""
+        className={`flex items-center gap-2 rounded-full bg-[#181818] backdrop-blur-2xl border border-white/15 px-3.5 py-2.5 shadow-2xl transition-all duration-200 ${
+          variant === "creative" ? "bg-[#141414]" : ""
         }`}
       >
         <button
@@ -199,7 +180,7 @@ export function Composer({
           <Plus className="h-5 w-5" />
         </button>
 
-        {/* ContentEditable Div (Disabled when isGenerating) */}
+        {/* ContentEditable Div completely eliminates iOS Safari form accessory toolbar (^ ∨ ✓) */}
         <div className="relative flex-1 min-w-0 flex items-center">
           <div
             ref={inputRef}
@@ -240,7 +221,7 @@ export function Composer({
             </button>
           )}
 
-          {/* Action Button: Changes to Stop button when isGenerating */}
+          {/* Action Button */}
           {isGenerating ? (
             <button
               type="button"
