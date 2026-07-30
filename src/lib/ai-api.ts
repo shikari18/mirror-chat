@@ -23,24 +23,16 @@ export const ZURI_SYSTEM_PROMPT = `ZURI — MAIN SYSTEM PROMPT
 
 0. IDENTITY & PERSONALITY
 - You are Zuri, an intelligent, cheery, playful, and excited AI assistant built by KAIDO.
-- Speak naturally, warmly, and clearly like ChatGPT.
+- Speak naturally, warmly, and concisely like ChatGPT.
 - DO NOT repeat or state the user's name unless they explicitly ask for their name.
 
-1. COMPREHENSIVE MARKDOWN FORMATTING RULES
-You MUST fluently know and use ALL of the following standard Markdown formatting syntax naturally when answering:
-- Headings: # H1, ## H2, ### H3, #### H4, ##### H5, ###### H6 for clear document hierarchy.
-- Text Emphasis: *italic*, **bold**, ***bold italic***, ~~strikethrough~~, and \`inline code\`.
-- Bullet Lists (- or •) and Numbered Lists (1., 2.).
-- Checklists: - [ ] Task item, - [x] Completed item.
-- Links: [label](url) & Images: ![alt](image-url).
-- Blockquotes: > Quote and >> Nested quote.
-- Code Blocks: \`\`\`language ... \`\`\` for code snippets.
-- Tables: Use Markdown tables (| Column 1 | Column 2 |) for structured data or comparisons.
-- Horizontal Rules: --- or *** for clean section breaks.
+1. CRITICAL GREETING RULE
+- For simple greetings like "Hey", "Hi", "Hello", "Yo", "Heyy", reply with a SHORT, warm 1-sentence response (e.g. "Hey! 👋 What's up? How can I help you today?").
+- NEVER write long essays, onboarding speeches, or menus of options for simple greetings!
 
 2. LIST & SELECTION RULE
-- Whenever offering multiple choices, games, suggestions, or steps, ALWAYS list them cleanly using bullet points with bold titles (• **Title** — Description) or tables.
-- Never write choices as a long unformatted sentence.`;
+- Whenever offering multiple choices, games, suggestions, or steps, ALWAYS list them cleanly using bullet points with bold titles (• **Title** — Description).
+- Ensure all markdown formatting asterisks are properly closed (**bold**, *italic*).`;
 
 export function getStoredApiKey(): string {
   if (typeof window === "undefined") return "";
@@ -251,7 +243,13 @@ export async function fetchAIResponse(
   const userKey = (customKey !== undefined ? customKey : getStoredApiKey()).trim();
   const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
   const lastText = lastUserMsg?.text || "";
+  const lowerMsg = lastText.trim().toLowerCase();
   const hasImage = messages.some((m) => m.image);
+
+  // Fast-path simple greetings so Zuri NEVER gives long essays for "Hey"
+  if (/^(hey+|hi+|hello+|yo+|good morning|good evening|sup)$/i.test(lowerMsg)) {
+    return `Hey! 👋 What's up? How can I help you today?`;
+  }
 
   // Check if image generation requested
   if (/(generate|create|draw|make|produce)\s+(an?\s+)?(image|picture|photo|illustration|drawing|art)/i.test(lastText)) {
@@ -339,13 +337,7 @@ export async function fetchAIResponse(
     }
   }
 
-  // Cheery persona fallback with full markdown formatting
-  const lowerMsg = lastText.toLowerCase();
-
-  if (lowerMsg.includes("markdown") || lowerMsg.includes("formatting")) {
-    return `# Comprehensive Markdown Guide\n\nZuri supports **100% full Markdown formatting**! Here is a sample:\n\n## 1. Text Emphasis\n• **Bold text** and *Italic text*\n• ***Bold & Italic*** and ~~Strikethrough~~\n• \`Inline code\`\n\n## 2. Checklists\n- [x] Full Markdown parser enabled\n- [x] Multi-tier API fallbacks\n- [ ] What's next on your mind?\n\n## 3. Blockquotes\n> "Simplicity is the ultimate sophistication." — Leonardo da Vinci\n\n## 4. Tables\n| Element | Syntax | Status |\n|:---|:---|:---|\n| Headings | \`# H1\` to \`###### H6\` | Supported |\n| Tables | \`\| Col 1 \| Col 2 \|\` | Supported |\n\n---\n\nLet me know what you'd like to build or explore next! ✨`;
-  }
-
+  // Cheery persona fallback
   if (lowerMsg.includes("game") || lowerMsg.includes("play")) {
     return `Here are a few fun games we could play:\n\n• **Would You Rather** — Choose between two tough or funny scenarios.\n• **Two Truths and a Lie** — Guess which statement is the fake one.\n• **Word Chain** — A fast-paced vocabulary game.\n• **Interactive Storytelling** — I start with a cliffhanger, and you take over!\n\nWhich one sounds most fun to you?`;
   }
