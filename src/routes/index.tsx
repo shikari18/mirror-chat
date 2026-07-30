@@ -59,7 +59,7 @@ export const Route = createFileRoute("/")({
 
 function TypewriterText({
   text,
-  speed = 3,
+  speed = 12,
   animate = true,
 }: {
   text: string;
@@ -91,7 +91,7 @@ function TypewriterText({
   const currentText = text.slice(0, displayedLength);
 
   return (
-    <div className="text-lg leading-relaxed">
+    <div className="text-base leading-relaxed">
       <FormattedMessage text={currentText} />
       {displayedLength < text.length && (
         <span className="inline-block w-1.5 h-4 ml-0.5 bg-brand animate-pulse align-middle" />
@@ -111,6 +111,18 @@ export function ChatIndex() {
   const [animatingIndex, setAnimatingIndex] = useState<number | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
+  // Auto open AuthModal on first launch if user is not signed in
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("zuri_user");
+      if (!stored) {
+        setAuthOpen(true);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   // Load active thread on mount
   useEffect(() => {
     const currentId = getActiveThreadId();
@@ -125,7 +137,6 @@ export function ChatIndex() {
       }
     }
 
-    // Default to most recent thread if available
     if (threads.length > 0) {
       setActiveThreadId(threads[0].id);
       setActiveThreadState(threads[0].id);
@@ -200,7 +211,7 @@ export function ChatIndex() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground relative">
       <TopBar
         tab="chat"
         onMenu={() => setMenuOpen(true)}
@@ -223,7 +234,7 @@ export function ChatIndex() {
       <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
 
       {messages.length === 0 ? (
-        <main className="flex flex-1 flex-col justify-center gap-6 pb-4">
+        <main className="flex flex-1 flex-col justify-center gap-6 pb-24">
           <div className="flex items-end justify-center gap-2 px-3">
             {emptyCards.map((c, i) => (
               <button
@@ -246,24 +257,24 @@ export function ChatIndex() {
           </div>
           <div className="space-y-3 px-6 text-center">
             <h1 className="text-xl font-semibold">The next era of video creation</h1>
-            <p className="text-base text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               More creativity, more control - create stunning videos, graphics, and
               realistic photos with even more precision.
             </p>
             <button
               onClick={() => handleSend("Create a new video idea for me!")}
-              className="rounded-full bg-primary px-7 py-2.5 text-base font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              className="rounded-full bg-primary px-7 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
               Try Now
             </button>
           </div>
         </main>
       ) : (
-        <main className="flex-1 space-y-5 px-4 py-6">
+        <main className="flex-1 space-y-4 px-4 pt-4 pb-28">
           {messages.map((m, i) =>
             m.role === "user" ? (
               <div key={i} className="flex justify-end">
-                <p className="max-w-[80%] rounded-3xl bg-surface px-5 py-3 text-lg">
+                <p className="max-w-[82%] rounded-3xl bg-surface px-4 py-2.5 text-base">
                   {m.text}
                 </p>
               </div>
@@ -271,25 +282,25 @@ export function ChatIndex() {
               <div key={i}>
                 <TypewriterText
                   text={m.text}
-                  speed={3}
+                  speed={12}
                   animate={i === animatingIndex}
                 />
-                <div className="mt-3 flex items-center gap-5 text-foreground/50">
+                <div className="mt-2.5 flex items-center gap-4 text-foreground/50">
                   <button
                     onClick={() => navigator.clipboard.writeText(m.text)}
                     aria-label="Copy text"
                     className="hover:text-foreground transition-colors"
                   >
-                    <Copy className="h-5 w-5" />
+                    <Copy className="h-4 w-4" />
                   </button>
-                  <Volume2 className="h-5 w-5 hover:text-foreground transition-colors" />
+                  <Volume2 className="h-4 w-4 hover:text-foreground transition-colors" />
                   <span className="flex items-center">
-                    <Repeat2 className="h-5 w-5 hover:text-foreground transition-colors" />
-                    <ChevronDown className="h-4 w-4" />
+                    <Repeat2 className="h-4 w-4 hover:text-foreground transition-colors" />
+                    <ChevronDown className="h-3.5 w-3.5" />
                   </span>
-                  <ThumbsUp className="h-5 w-5 hover:text-foreground transition-colors" />
-                  <ThumbsDown className="h-5 w-5 hover:text-foreground transition-colors" />
-                  <Ellipsis className="h-5 w-5 hover:text-foreground transition-colors" />
+                  <ThumbsUp className="h-4 w-4 hover:text-foreground transition-colors" />
+                  <ThumbsDown className="h-4 w-4 hover:text-foreground transition-colors" />
+                  <Ellipsis className="h-4 w-4 hover:text-foreground transition-colors" />
                 </div>
               </div>
             )
@@ -297,7 +308,7 @@ export function ChatIndex() {
 
           {isGenerating && (
             <div className="flex items-center gap-2 py-1">
-              <span className="thinking-shimmer text-lg font-medium tracking-wide">
+              <span className="thinking-shimmer text-base font-medium tracking-wide">
                 {generatingStatus}
               </span>
             </div>
@@ -307,7 +318,8 @@ export function ChatIndex() {
         </main>
       )}
 
-      <footer className="px-3 pb-5">
+      {/* Pinned Input Bar at Bottom */}
+      <footer className="sticky bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-background via-background/95 to-transparent pt-3 pb-4 px-3">
         <Composer
           placeholder="Give me a task — Consider it done."
           onSend={(text) => handleSend(text)}

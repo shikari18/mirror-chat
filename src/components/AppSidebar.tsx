@@ -47,9 +47,10 @@ export function AppSidebar({
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [user, setUser] = useState<{ email: string } | null>(null);
+  const [user, setUser] = useState<{ email: string; name?: string } | null>(null);
   const activeId = getActiveThreadId();
   const menuRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -63,6 +64,37 @@ export function AppSidebar({
       }
     }
   }, [open]);
+
+  // Handle global touch swipe to slide out/in sidebar
+  useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartRef.current = e.touches[0].clientX;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (touchStartRef.current === null) return;
+      const touchEnd = e.changedTouches[0].clientX;
+      const diff = touchEnd - touchStartRef.current;
+
+      // Swipe right from left edge opens sidebar
+      if (!open && touchStartRef.current < 40 && diff > 60) {
+        onOpenChange(true);
+      }
+      // Swipe left on open sidebar closes sidebar
+      else if (open && diff < -60) {
+        onOpenChange(false);
+      }
+
+      touchStartRef.current = null;
+    };
+
+    window.addEventListener("touchstart", handleTouchStart);
+    window.addEventListener("touchend", handleTouchEnd);
+    return () => {
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [open, onOpenChange]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -96,7 +128,7 @@ export function AppSidebar({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="left"
-        className="w-[88%] max-w-sm overflow-y-auto border-border bg-background p-0"
+        className="w-[88%] max-w-sm overflow-y-auto border-border bg-background p-0 [&>button]:hidden"
       >
         <SheetHeader className="sr-only">
           <SheetTitle>Menu</SheetTitle>
@@ -110,12 +142,12 @@ export function AppSidebar({
             }}
             className="flex w-full items-center gap-3 rounded-2xl p-2.5 hover:bg-surface transition-colors text-left"
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2">
-              <User className="h-5 w-5 text-foreground/70" />
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2 font-bold text-foreground">
+              {user?.name ? user.name.charAt(0).toUpperCase() : <User className="h-5 w-5 text-foreground/70" />}
             </span>
             <div className="flex-1 min-w-0">
               <span className="block truncate text-lg font-semibold">
-                {user ? user.email.split("@")[0] : "Sign in / Register"}
+                {user ? user.name || user.email.split("@")[0] : "Sign in / Register"}
               </span>
               <span className="block truncate text-xs text-muted-foreground">
                 {user ? user.email : "Tap to log in or create account"}
@@ -186,10 +218,7 @@ export function AppSidebar({
                 const isMenuOpen = openMenuId === t.id;
 
                 return (
-                  <div
-                    key={t.id}
-                    className="relative"
-                  >
+                  <div key={t.id} className="relative">
                     <div
                       onClick={() => {
                         setActiveThreadId(t.id);

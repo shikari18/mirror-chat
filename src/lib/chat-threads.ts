@@ -12,6 +12,26 @@ export type ChatThread = {
 const THREADS_KEY = "zuri_chat_threads_v2";
 const ACTIVE_THREAD_KEY = "zuri_active_thread_id_v2";
 
+export function generateSmartTitle(userText: string): string {
+  const trimmed = userText.trim();
+  const lower = trimmed.toLowerCase();
+
+  if (/^(hey|heyy|hello|hi|sup|yo|good morning|good evening|how far)\b/i.test(lower)) {
+    return "Casual Greeting";
+  }
+  if (/(code|react|component|function|bug|error|js|ts|python|html|css)/i.test(lower)) {
+    return "Code & Development";
+  }
+  if (/(video|image|photo|fan cam|design|creative|prompt|studio)/i.test(lower)) {
+    return "Creative & Visual Concept";
+  }
+  if (/(who won|champions league|match|score|football|messi|ronaldo)/i.test(lower)) {
+    return "Sports & Match Breakdown";
+  }
+
+  return trimmed.slice(0, 30) + (trimmed.length > 30 ? "..." : "");
+}
+
 export function loadThreads(): ChatThread[] {
   if (typeof window === "undefined") return [];
   try {
@@ -47,9 +67,7 @@ export function setActiveThreadId(id: string | null): void {
 
 export function createNewThread(initialMessages: Message[] = []): ChatThread {
   const firstUserMsg = initialMessages.find((m) => m.role === "user");
-  const title = firstUserMsg
-    ? firstUserMsg.text.slice(0, 32) + (firstUserMsg.text.length > 32 ? "..." : "")
-    : "New Chat";
+  const title = firstUserMsg ? generateSmartTitle(firstUserMsg.text) : "New Chat";
 
   const newThread: ChatThread = {
     id: `thread_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -79,9 +97,7 @@ export function updateThreadMessages(id: string, messages: Message[]): void {
   }
 
   const firstUserMsg = messages.find((m) => m.role === "user");
-  const title = firstUserMsg
-    ? firstUserMsg.text.slice(0, 32) + (firstUserMsg.text.length > 32 ? "..." : "")
-    : threads[index].title;
+  const title = firstUserMsg ? generateSmartTitle(firstUserMsg.text) : threads[index].title;
 
   threads[index] = {
     ...threads[index],

@@ -17,7 +17,7 @@ export function CodeBlock({
   };
 
   return (
-    <div className="my-4 overflow-hidden rounded-2xl border border-border bg-[#0e0e13] shadow-md">
+    <div className="my-3 overflow-hidden rounded-2xl border border-border bg-[#0e0e13] shadow-md">
       <div className="flex items-center justify-between border-b border-border/60 bg-surface-2/60 px-4 py-2 text-xs font-mono text-muted-foreground">
         <span className="font-semibold uppercase tracking-wider text-brand">
           {language || "code"}
@@ -125,7 +125,6 @@ function InlineTextFormatter({ text }: { text: string }) {
 }
 
 function TableBlock({ lines }: { lines: string[] }) {
-  // Filter out delimiter line like |---|---|
   const dataLines = lines.filter((l) => !/^\s*\|?\s*[-:]+[-|\s:]*$/.test(l));
   if (dataLines.length === 0) return null;
 
@@ -141,13 +140,13 @@ function TableBlock({ lines }: { lines: string[] }) {
   const bodyRows = dataLines.slice(1).map(parseRow);
 
   return (
-    <div className="my-4 overflow-x-auto rounded-2xl border border-border/80 bg-surface/60 p-1 shadow-sm">
+    <div className="my-3 overflow-x-auto rounded-2xl border border-border/80 bg-surface/60 p-1 shadow-sm">
       <table className="w-full text-left text-sm border-collapse">
         {headerCells.length > 0 && (
           <thead>
             <tr className="border-b border-border bg-surface-2/80 text-foreground font-semibold">
               {headerCells.map((h, i) => (
-                <th key={i} className="p-3 whitespace-nowrap">
+                <th key={i} className="p-2.5 whitespace-nowrap">
                   <InlineTextFormatter text={h} />
                 </th>
               ))}
@@ -158,7 +157,7 @@ function TableBlock({ lines }: { lines: string[] }) {
           {bodyRows.map((row, rIdx) => (
             <tr key={rIdx} className="hover:bg-surface-2/40 transition-colors">
               {row.map((cell, cIdx) => (
-                <td key={cIdx} className="p-3">
+                <td key={cIdx} className="p-2.5">
                   <InlineTextFormatter text={cell} />
                 </td>
               ))}
@@ -171,11 +170,10 @@ function TableBlock({ lines }: { lines: string[] }) {
 }
 
 export function FormattedMessage({ text }: { text: string }) {
-  // Split into code blocks vs non-code text
   const parts = text.split(/(```[\s\S]*?```)/g);
 
   return (
-    <div className="space-y-3 leading-relaxed">
+    <div className="space-y-2.5 leading-relaxed text-base">
       {parts.map((part, index) => {
         // Code Block
         if (part.startsWith("```") && part.endsWith("```")) {
@@ -199,24 +197,23 @@ export function FormattedMessage({ text }: { text: string }) {
           );
         }
 
-        // Split paragraphs by blank lines \n\n
         const paragraphs = part.split(/\n\n+/g);
 
         return (
-          <div key={index} className="space-y-3">
+          <div key={index} className="space-y-2.5">
             {paragraphs.map((p, pIdx) => {
               const trimmed = p.trim();
               if (!trimmed) return null;
 
               const lines = trimmed.split("\n");
 
-              // 1. Markdown Table Check (lines with |)
+              // Table Check
               const isTable = lines.length >= 2 && lines.some((l) => l.includes("|"));
               if (isTable) {
                 return <TableBlock key={pIdx} lines={lines} />;
               }
 
-              // 2. Header Check (#, ##, ###, ####)
+              // Header Check (#, ##, ###, ####)
               if (trimmed.startsWith("#")) {
                 const headerMatch = trimmed.match(/^(#{1,6})\s+(.+)$/s);
                 if (headerMatch) {
@@ -225,38 +222,38 @@ export function FormattedMessage({ text }: { text: string }) {
 
                   if (level === 1) {
                     return (
-                      <h1 key={pIdx} className="mt-4 mb-2 text-2xl font-bold tracking-tight text-foreground">
+                      <h1 key={pIdx} className="mt-3 mb-1.5 text-xl font-bold tracking-tight text-foreground">
                         <InlineTextFormatter text={headerText} />
                       </h1>
                     );
                   }
                   if (level === 2) {
                     return (
-                      <h2 key={pIdx} className="mt-4 mb-2 text-xl font-bold tracking-tight text-foreground">
+                      <h2 key={pIdx} className="mt-3 mb-1 text-lg font-bold tracking-tight text-foreground">
                         <InlineTextFormatter text={headerText} />
                       </h2>
                     );
                   }
                   return (
-                    <h3 key={pIdx} className="mt-3 mb-1.5 text-lg font-semibold text-foreground">
+                    <h3 key={pIdx} className="mt-2 mb-1 text-base font-semibold text-foreground">
                       <InlineTextFormatter text={headerText} />
                     </h3>
                   );
                 }
               }
 
-              // 3. List Check (lines starting with - , * , • or 1. )
+              // List Check (- , * , • or 1. )
               const isList = lines.every((line) =>
                 /^\s*([-*•]|\d+\.)\s+/.test(line)
               );
 
               if (isList) {
                 return (
-                  <ul key={pIdx} className="my-2 space-y-1.5 pl-1">
+                  <ul key={pIdx} className="my-1.5 space-y-1 pl-1">
                     {lines.map((line, lIdx) => {
                       const content = line.replace(/^\s*([-*•]|\d+\.)\s+/, "");
                       return (
-                        <li key={lIdx} className="flex items-start gap-2 text-lg">
+                        <li key={lIdx} className="flex items-start gap-2 text-base">
                           <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/70" />
                           <span className="flex-1">
                             <InlineTextFormatter text={content} />
@@ -268,15 +265,14 @@ export function FormattedMessage({ text }: { text: string }) {
                 );
               }
 
-              // 4. Regular Paragraph
+              // Regular Paragraph
               return (
-                <p key={pIdx} className="text-lg leading-relaxed">
+                <p key={pIdx} className="text-base leading-relaxed">
                   {lines.map((line, lIdx) => {
-                    // Check if individual line is a header inside paragraph
                     if (/^(#{1,6})\s+/.test(line.trim())) {
                       const hText = line.trim().replace(/^(#{1,6})\s+/, "");
                       return (
-                        <strong key={lIdx} className="block mt-3 mb-1 text-xl font-bold text-foreground">
+                        <strong key={lIdx} className="block mt-2 mb-1 text-lg font-bold text-foreground">
                           <InlineTextFormatter text={hText} />
                         </strong>
                       );
