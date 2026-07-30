@@ -1,10 +1,9 @@
 services:
   - type: web
     name: zuri-mirror-chat
-    env: static
+    env: node
     buildCommand: npm install && npm run build
-    staticPublishPath: .output/public
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+    startCommand: npm run start
+    envVars:
+      - key: VITE_OPENROUTER_API_KEY
+        sync: false
