@@ -25,7 +25,7 @@ export function CodeBlock({
     (code.includes("<style>") && code.includes("</style>"));
 
   return (
-    <div className="my-4 overflow-hidden rounded-3xl border border-border/70 bg-[#16171d] shadow-xl">
+    <div className="my-3 overflow-hidden rounded-3xl border border-border/70 bg-[#16171d] shadow-xl">
       {/* Header Matching ChatGPT Image 4 & 5 */}
       <div className="flex items-center justify-between border-b border-border/50 bg-[#1f2027] px-4 py-2.5 text-xs text-foreground/80">
         <div className="flex items-center gap-2 font-mono font-medium text-foreground/90">
@@ -82,7 +82,7 @@ export function CodeBlock({
           />
         </div>
       ) : (
-        <div className="overflow-x-auto p-4 font-mono text-sm leading-relaxed text-slate-100 bg-[#0e0e13]">
+        <div className="overflow-x-auto p-4 font-mono text-[13px] leading-relaxed text-slate-100 bg-[#0e0e13]">
           <pre>
             <code>{code}</code>
           </pre>
@@ -146,7 +146,7 @@ function InlineTextFormatter({ text }: { text: string }) {
           return (
             <span
               key={i}
-              className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-medium text-foreground/90 border border-border/60 mx-0.5 cursor-pointer hover:bg-surface transition-colors"
+              className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-0.5 text-[11px] font-medium text-foreground/90 border border-border/60 mx-0.5 cursor-pointer hover:bg-surface transition-colors"
             >
               <Globe className="h-3 w-3 text-brand shrink-0" />
               <span>{label}</span>
@@ -180,7 +180,7 @@ function InlineTextFormatter({ text }: { text: string }) {
           return (
             <code
               key={i}
-              className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-sm text-brand-foreground border border-border/50 mx-0.5"
+              className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[12px] text-brand-foreground border border-border/50 mx-0.5"
             >
               {part.slice(1, -1)}
             </code>
@@ -197,7 +197,7 @@ export function FormattedMessage({ text }: { text: string }) {
   const parts = text.split(/(```[\s\S]*?```)/g);
 
   return (
-    <div className="space-y-4 leading-relaxed text-[15px] text-foreground/95">
+    <div className="space-y-3 leading-relaxed text-[14px] text-foreground/95">
       {parts.map((part, index) => {
         // Code Block
         if (part.startsWith("```") && part.endsWith("```")) {
@@ -225,7 +225,7 @@ export function FormattedMessage({ text }: { text: string }) {
         const paragraphs = part.split(/\n\n+/g);
 
         return (
-          <div key={index} className="space-y-3.5">
+          <div key={index} className="space-y-2.5">
             {paragraphs.map((p, pIdx) => {
               const trimmed = p.trim();
               if (!trimmed) return null;
@@ -238,7 +238,7 @@ export function FormattedMessage({ text }: { text: string }) {
                 return (
                   <blockquote
                     key={pIdx}
-                    className="my-3 border-l-3 border-brand pl-4 py-1.5 italic bg-surface-2/30 rounded-r-xl text-foreground/90"
+                    className="my-2 border-l-3 border-brand pl-3 py-1 italic bg-surface-2/30 rounded-r-xl text-foreground/90 text-[13.5px]"
                   >
                     <InlineTextFormatter text={quoteText} />
                   </blockquote>
@@ -249,7 +249,7 @@ export function FormattedMessage({ text }: { text: string }) {
               if (trimmed.startsWith("#")) {
                 const headerText = trimmed.replace(/^(#{1,6})\s+/, "");
                 return (
-                  <div key={pIdx} className="mt-4 mb-1 text-base font-semibold text-white">
+                  <div key={pIdx} className="mt-3 mb-1 text-[15px] font-semibold text-white">
                     <InlineTextFormatter text={headerText} />
                   </div>
                 );
@@ -262,11 +262,11 @@ export function FormattedMessage({ text }: { text: string }) {
 
               if (isList) {
                 return (
-                  <ul key={pIdx} className="my-2.5 space-y-2.5 pl-0">
+                  <ul key={pIdx} className="my-2 space-y-2 pl-0">
                     {lines.map((line, lIdx) => {
                       const content = line.replace(/^\s*([-*•]|\d+\.)\s+/, "");
                       return (
-                        <li key={lIdx} className="flex items-start gap-2.5 text-[15px]">
+                        <li key={lIdx} className="flex items-start gap-2 text-[14px]">
                           <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/60 select-none" />
                           <div className="flex-1 leading-relaxed">
                             <InlineTextFormatter text={content} />
@@ -280,13 +280,13 @@ export function FormattedMessage({ text }: { text: string }) {
 
               // Regular Paragraph
               return (
-                <p key={pIdx} className="text-[15px] leading-relaxed">
+                <p key={pIdx} className="text-[14px] leading-relaxed">
                   {lines.map((line, lIdx) => {
                     const lineTrimmed = line.trim();
                     if (/^(#{1,6})\s+/.test(lineTrimmed)) {
                       const hText = lineTrimmed.replace(/^(#{1,6})\s+/, "");
                       return (
-                        <span key={lIdx} className="block mt-3 mb-1 text-base font-semibold text-white">
+                        <span key={lIdx} className="block mt-2 mb-1 text-[15px] font-semibold text-white">
                           <InlineTextFormatter text={hText} />
                         </span>
                       );

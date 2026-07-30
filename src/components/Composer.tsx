@@ -43,8 +43,8 @@ export function Composer({
     setMenuOpen(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (text.trim() || selectedImage) {
       const fullText = deepThink ? `[DeepThink Mode Active]\n${text.trim()}` : text.trim();
       onSend?.(fullText, selectedImage || undefined);
@@ -65,6 +65,7 @@ export function Composer({
         capture="environment"
         onChange={handleFileChange}
         className="hidden"
+        tabIndex={-1}
       />
       <input
         ref={photoInputRef}
@@ -72,6 +73,7 @@ export function Composer({
         accept="image/*"
         onChange={handleFileChange}
         className="hidden"
+        tabIndex={-1}
       />
       <input
         ref={fileInputRef}
@@ -79,6 +81,7 @@ export function Composer({
         accept="*/*"
         onChange={handleFileChange}
         className="hidden"
+        tabIndex={-1}
       />
 
       {/* Plus Attachment Popup Drawer */}
@@ -86,6 +89,7 @@ export function Composer({
         <div className="absolute bottom-16 left-0 z-50 w-64 overflow-hidden rounded-2xl border border-white/15 bg-[#18191e]/95 backdrop-blur-2xl p-2 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
           <button
             type="button"
+            tabIndex={-1}
             onClick={() => cameraInputRef.current?.click()}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-surface-2 transition-colors text-left"
           >
@@ -97,6 +101,7 @@ export function Composer({
 
           <button
             type="button"
+            tabIndex={-1}
             onClick={() => photoInputRef.current?.click()}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-surface-2 transition-colors text-left"
           >
@@ -108,6 +113,7 @@ export function Composer({
 
           <button
             type="button"
+            tabIndex={-1}
             onClick={() => fileInputRef.current?.click()}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-surface-2 transition-colors text-left"
           >
@@ -119,6 +125,7 @@ export function Composer({
 
           <button
             type="button"
+            tabIndex={-1}
             onClick={() => {
               setDeepThink(!deepThink);
               setMenuOpen(false);
@@ -145,10 +152,11 @@ export function Composer({
       {/* Selected Image Thumbnail Preview */}
       {selectedImage && (
         <div className="mb-2 flex items-center gap-2 pl-2">
-          <div className="relative h-16 w-16 overflow-hidden rounded-xl border border-white/20 shadow-md">
+          <div className="relative h-14 w-14 overflow-hidden rounded-xl border border-white/20 shadow-md">
             <img src={selectedImage} alt="Attachment" className="h-full w-full object-cover" />
             <button
               type="button"
+              tabIndex={-1}
               onClick={() => setSelectedImage(null)}
               className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white hover:bg-black"
             >
@@ -163,15 +171,15 @@ export function Composer({
         </div>
       )}
 
-      {/* Input Glass Container */}
-      <form
-        onSubmit={handleSubmit}
+      {/* Input Glass Container with iOS Form Toolbar Suppressed */}
+      <div
         className={`flex items-center gap-2 rounded-full bg-black/40 backdrop-blur-2xl border border-white/15 px-3.5 py-2.5 shadow-2xl transition-all duration-200 ${
           variant === "creative" ? "bg-black/50" : ""
         }`}
       >
         <button
           type="button"
+          tabIndex={-1}
           aria-label="Add attachment"
           onClick={() => setMenuOpen(!menuOpen)}
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
@@ -185,7 +193,18 @@ export function Composer({
           name="message"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          className="w-full min-w-0 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground/60 px-1"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSubmit();
+            }
+          }}
+          enterKeyHint="send"
+          inputMode="text"
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+          className="w-full min-w-0 bg-transparent text-[14px] text-foreground outline-none placeholder:text-muted-foreground/60 px-1"
           placeholder={deepThink ? "Ask anything (DeepThink active)..." : placeholder}
           aria-label="Message"
         />
@@ -193,6 +212,7 @@ export function Composer({
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
+            tabIndex={-1}
             aria-label="Voice input"
             className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/70 hover:text-foreground transition-colors"
           >
@@ -201,7 +221,9 @@ export function Composer({
 
           {hasContent ? (
             <button
-              type="submit"
+              type="button"
+              tabIndex={-1}
+              onClick={() => handleSubmit()}
               aria-label="Send message"
               className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black font-bold transition-transform active:scale-95 shadow-md"
             >
@@ -209,7 +231,9 @@ export function Composer({
             </button>
           ) : (
             <button
-              type="submit"
+              type="button"
+              tabIndex={-1}
+              onClick={() => handleSubmit()}
               aria-label="Voice mode"
               className="flex h-9 w-9 items-center justify-center rounded-full bg-[#3b82f6] text-white transition-transform active:scale-95 shadow-md hover:bg-blue-600"
             >
@@ -217,7 +241,7 @@ export function Composer({
             </button>
           )}
         </div>
-      </form>
+      </div>
     </div>
   );
 }

@@ -10,15 +10,14 @@ import {
   ChevronDown,
   Copy,
   Ellipsis,
+  Globe,
+  ImageIcon,
+  SquarePen,
   RotateCcw,
   ThumbsDown,
   ThumbsUp,
   Volume2,
 } from "lucide-react";
-import fanCam from "@/assets/card-fancam.jpg";
-import space from "@/assets/card-space.jpg";
-import mermaid from "@/assets/card-mermaid.jpg";
-import boxer from "@/assets/card-boxer.jpg";
 import { fetchAIResponse, type Message } from "@/lib/ai-api";
 import {
   loadThreads,
@@ -28,13 +27,6 @@ import {
   createNewThread,
   type ChatThread,
 } from "@/lib/chat-threads";
-
-const emptyCards = [
-  { label: "Fan Cam", src: fanCam, prompt: "Create a fan cam video concept" },
-  { label: "Space", src: space, prompt: "Describe a sci-fi space exploration scene" },
-  { label: "Mermaid", src: mermaid, prompt: "Give me ideas for a magical underwater visual" },
-  { label: "Boxer", src: boxer, prompt: "Generate a workout & athletic video prompt" },
-];
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -91,10 +83,10 @@ function TypewriterText({
   const currentText = text.slice(0, displayedLength);
 
   return (
-    <div className="text-[15px] leading-relaxed">
+    <div className="text-[14px] leading-relaxed">
       <FormattedMessage text={currentText} />
       {displayedLength < text.length && (
-        <span className="inline-block w-1.5 h-4 ml-0.5 bg-brand animate-pulse align-middle" />
+        <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-brand animate-pulse align-middle" />
       )}
     </div>
   );
@@ -209,7 +201,6 @@ export function ChatIndex() {
 
   const handleRetry = async () => {
     if (isGenerating || messages.length === 0) return;
-    // Remove last assistant message if present
     const userMessagesOnly = messages.filter((_, i) => !(i === messages.length - 1 && messages[i].role === "assistant"));
     setIsGenerating(true);
     setGeneratingStatus("thinking...");
@@ -257,46 +248,38 @@ export function ChatIndex() {
       <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
 
       {messages.length === 0 ? (
-        <main className="flex flex-1 flex-col justify-center gap-6 pb-24">
-          <div className="flex items-end justify-center gap-2 px-3">
-            {emptyCards.map((c, i) => (
-              <button
-                key={c.label}
-                onClick={() => handleSend(c.prompt)}
-                className="relative aspect-[3/4] w-[23%] overflow-hidden rounded-xl bg-surface transition-transform hover:scale-105"
-                style={{ transform: `rotate(${(i - 1.5) * 2}deg)` }}
-              >
-                <img
-                  src={c.src}
-                  alt={c.label}
-                  loading="lazy"
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2 pb-2 pt-6 text-sm text-primary">
-                  {c.label}
-                </span>
-              </button>
-            ))}
-          </div>
-          <div className="space-y-3 px-6 text-center">
-            <h1 className="text-xl font-semibold">The next era of video creation</h1>
-            <p className="text-sm text-muted-foreground">
-              More creativity, more control - create stunning videos, graphics, and
-              realistic photos with even more precision.
-            </p>
+        <main className="flex flex-1 flex-col justify-center px-6 pb-28 space-y-4">
+          <div className="space-y-3.5 max-w-sm mx-auto w-full">
             <button
-              onClick={() => handleSend("Create a new video idea for me!")}
-              className="rounded-full bg-primary px-7 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              onClick={() => handleSend("Generate an image of a futuristic neon city skyline")}
+              className="flex w-full items-center gap-3.5 rounded-2xl bg-surface/60 border border-border/40 p-4 text-left transition-colors hover:bg-surface"
             >
-              Try Now
+              <ImageIcon className="h-5 w-5 text-purple-400 shrink-0" />
+              <span className="text-[14.5px] font-medium text-foreground">Create an image</span>
+            </button>
+
+            <button
+              onClick={() => handleSend("Write a creative story or edit my text")}
+              className="flex w-full items-center gap-3.5 rounded-2xl bg-surface/60 border border-border/40 p-4 text-left transition-colors hover:bg-surface"
+            >
+              <SquarePen className="h-5 w-5 text-blue-400 shrink-0" />
+              <span className="text-[14.5px] font-medium text-foreground">Write or edit</span>
+            </button>
+
+            <button
+              onClick={() => handleSend("Search the web for current news and updates")}
+              className="flex w-full items-center gap-3.5 rounded-2xl bg-surface/60 border border-border/40 p-4 text-left transition-colors hover:bg-surface"
+            >
+              <Globe className="h-5 w-5 text-emerald-400 shrink-0" />
+              <span className="text-[14.5px] font-medium text-foreground">Search the web</span>
             </button>
           </div>
         </main>
       ) : (
-        <main className="flex-1 space-y-6 px-4 pt-4 pb-28">
+        <main className="flex-1 space-y-5 px-4 pt-4 pb-28">
           {messages.map((m, i) =>
             m.role === "user" ? (
-              <div key={i} className="flex flex-col items-end my-3 space-y-2">
+              <div key={i} className="flex flex-col items-end my-2.5 space-y-2">
                 {m.image && (
                   <img
                     src={m.image}
@@ -305,19 +288,19 @@ export function ChatIndex() {
                   />
                 )}
                 {m.text && (
-                  <p className="max-w-[82%] rounded-3xl bg-[#2b2c32] px-4.5 py-3 text-[15px] text-white">
+                  <p className="max-w-[82%] rounded-3xl bg-[#2b2c32] px-4 py-2.5 text-[14px] text-white">
                     {m.text}
                   </p>
                 )}
               </div>
             ) : (
-              <div key={i} className="my-3">
+              <div key={i} className="my-2.5">
                 <TypewriterText
                   text={m.text}
                   speed={12}
                   animate={i === animatingIndex}
                 />
-                <div className="mt-3 flex items-center gap-4 text-foreground/40">
+                <div className="mt-2.5 flex items-center gap-3.5 text-foreground/40">
                   <button
                     onClick={() => navigator.clipboard.writeText(m.text)}
                     aria-label="Copy text"
@@ -343,8 +326,8 @@ export function ChatIndex() {
           )}
 
           {isGenerating && (
-            <div className="flex items-center gap-2 py-2">
-              <span className="thinking-shimmer text-base font-medium tracking-wide">
+            <div className="flex items-center gap-2 py-1">
+              <span className="thinking-shimmer text-[14px] font-medium tracking-wide">
                 {generatingStatus}
               </span>
             </div>
