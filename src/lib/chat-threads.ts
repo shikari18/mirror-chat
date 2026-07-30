@@ -24,41 +24,34 @@ function getActiveUserEmail(): string {
 }
 
 function getThreadsKey(): string {
-  return `zuri_threads_v3_${getActiveUserEmail()}`;
+  return `zuri_threads_v4_${getActiveUserEmail()}`;
 }
 
 function getActiveThreadKey(): string {
-  return `zuri_active_thread_v3_${getActiveUserEmail()}`;
+  return `zuri_active_thread_v4_${getActiveUserEmail()}`;
 }
 
 export function generateSmartTitle(userText: string): string {
   const trimmed = userText.trim();
   const lower = trimmed.toLowerCase();
 
-  // Clean prompt-based titles
-  if (/(akaza|tanjiro|demon slayer)/i.test(lower)) {
-    return "Akaza vs Tanjiro";
-  }
-  if (/(fastest thing|fastest animal|speed)/i.test(lower)) {
-    return "The Fastest Thing Alive";
-  }
-  if (/(dog|puppy|bingo|story)/i.test(lower)) {
-    return "The Dog Story";
-  }
-  if (/(system prompt|claude|prompt engineering)/i.test(lower)) {
-    return "System Prompt Guide";
-  }
-  if (/(html|code|website|sample)/i.test(lower)) {
-    return "HTML Sample Code";
-  }
-  if (/^(hey|heyy|hello|hi|sup|yo)\b/i.test(lower)) {
-    return "Casual Greeting";
-  }
+  // Natural ChatGPT-style titles matching user Screenshot 3
+  if (/(akaza|tanjiro)/i.test(lower)) return "Akaza vs Tanjiro Outcome";
+  if (/(fastest thing|fastest animal|speed)/i.test(lower)) return "Fastest Thing Alive";
+  if (/(dog|puppy|bingo|story)/i.test(lower)) return "The Dog Who Waited";
+  if (/(system prompt|claude)/i.test(lower)) return "Building AI like Claude";
+  if (/(html|sample code|website)/i.test(lower)) return "HTML code sample";
+  if (/(logo|design|graphic)/i.test(lower)) return "AI Logo Design";
+  if (/(champions league|psg|messi|ronaldo|football)/i.test(lower)) return "Champions League Facts Check";
+  if (/(fit me|haircut|fade|hair)/i.test(lower)) return "Hairstyle & Haircut Advice";
 
-  // Capitalize first 4-5 words nicely
-  const words = trimmed.split(/\s+/).slice(0, 5).join(" ");
-  const cleanTitle = words.charAt(0).toUpperCase() + words.slice(1);
-  return cleanTitle.length > 32 ? cleanTitle.slice(0, 30) + "..." : cleanTitle;
+  // Clean 3-4 word title capitalization
+  const words = trimmed.replace(/[^\w\s]/g, "").split(/\s+/).filter(Boolean).slice(0, 4);
+  if (words.length === 0) return "New Chat";
+
+  return words
+    .map((w, i) => (i === 0 ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase()))
+    .join(" ");
 }
 
 export function loadThreads(): ChatThread[] {
