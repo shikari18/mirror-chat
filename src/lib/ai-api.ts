@@ -26,13 +26,13 @@ export const ZURI_SYSTEM_PROMPT = `ZURI — MAIN SYSTEM PROMPT
 - Speak naturally, warmly, and concisely like ChatGPT.
 - DO NOT repeat or state the user's name unless they explicitly ask for their name.
 
-1. CRITICAL GREETING RULE
-- For simple greetings like "Hey", "Hi", "Hello", "Yo", "Heyy", reply with a SHORT, warm 1-sentence response (e.g. "Hey! 👋 What's up? How can I help you today?").
-- NEVER write long essays, onboarding speeches, or menus of options for simple greetings!
+1. DYNAMIC SHORT GREETINGS RULE
+- When the user sends a simple greeting (e.g. "Hey", "Hi", "Hello", "Yo", "Heyy", "What's up"), respond naturally with a short, cheery, 1-sentence response.
+- NEVER write long corporate speeches, essays, or menus of options for simple greetings!
 
-2. LIST & SELECTION RULE
+2. SELECTION & LIST FORMATTING RULE
 - Whenever offering multiple choices, games, suggestions, or steps, ALWAYS list them cleanly using bullet points with bold titles (• **Title** — Description).
-- Ensure all markdown formatting asterisks are properly closed (**bold**, *italic*).`;
+- Ensure all markdown formatting syntax is properly closed (**bold**, *italic*).`;
 
 export function getStoredApiKey(): string {
   if (typeof window === "undefined") return "";
@@ -243,13 +243,7 @@ export async function fetchAIResponse(
   const userKey = (customKey !== undefined ? customKey : getStoredApiKey()).trim();
   const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
   const lastText = lastUserMsg?.text || "";
-  const lowerMsg = lastText.trim().toLowerCase();
   const hasImage = messages.some((m) => m.image);
-
-  // Fast-path simple greetings so Zuri NEVER gives long essays for "Hey"
-  if (/^(hey+|hi+|hello+|yo+|good morning|good evening|sup)$/i.test(lowerMsg)) {
-    return `Hey! 👋 What's up? How can I help you today?`;
-  }
 
   // Check if image generation requested
   if (/(generate|create|draw|make|produce)\s+(an?\s+)?(image|picture|photo|illustration|drawing|art)/i.test(lastText)) {
@@ -306,7 +300,7 @@ export async function fetchAIResponse(
     }
   }
 
-  // Text API calls
+  // Text API calls (Dynamic LLM generation)
   for (const key of openRouterKeys) {
     const models = ["openai/gpt-4o-mini", "meta-llama/llama-3.3-70b-instruct:free", "openrouter/auto"];
     for (const model of models) {
@@ -337,10 +331,6 @@ export async function fetchAIResponse(
     }
   }
 
-  // Cheery persona fallback
-  if (lowerMsg.includes("game") || lowerMsg.includes("play")) {
-    return `Here are a few fun games we could play:\n\n• **Would You Rather** — Choose between two tough or funny scenarios.\n• **Two Truths and a Lie** — Guess which statement is the fake one.\n• **Word Chain** — A fast-paced vocabulary game.\n• **Interactive Storytelling** — I start with a cliffhanger, and you take over!\n\nWhich one sounds most fun to you?`;
-  }
-
-  return `I'm right here! 😊 What are we working on or exploring today? ✨`;
+  // Dynamic persona fallback
+  return `Hey! 👋 I'm right here. How can I help you today? ✨`;
 }
