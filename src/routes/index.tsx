@@ -30,16 +30,16 @@ const emptyCards = [
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Chat — Nova AI Assistant" },
+      { title: "Zuri AI — KAIDO Assistant" },
       {
         name: "description",
         content:
-          "Chat with Nova AI: ask anything, get instant answers, and switch to creative mode for images and video.",
+          "Chat with Zuri: ask anything, get instant answers, and switch to creative mode for images and video.",
       },
-      { property: "og:title", content: "Chat — Nova AI Assistant" },
+      { property: "og:title", content: "Zuri AI — KAIDO Assistant" },
       {
         property: "og:description",
-        content: "Ask anything and get instant answers from Nova AI.",
+        content: "Ask anything and get instant answers from Zuri AI.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -60,11 +60,53 @@ function loadMessages(): Message[] {
   }
 }
 
+function TypewriterText({
+  text,
+  speed = 3,
+  animate = true,
+}: {
+  text: string;
+  speed?: number;
+  animate?: boolean;
+}) {
+  const [displayedLength, setDisplayedLength] = useState(animate ? 0 : text.length);
+
+  useEffect(() => {
+    if (!animate) {
+      setDisplayedLength(text.length);
+      return;
+    }
+
+    setDisplayedLength(0);
+    const interval = setInterval(() => {
+      setDisplayedLength((prev) => {
+        if (prev + speed >= text.length) {
+          clearInterval(interval);
+          return text.length;
+        }
+        return prev + speed;
+      });
+    }, 16);
+
+    return () => clearInterval(interval);
+  }, [text, speed, animate]);
+
+  return (
+    <span className="text-lg whitespace-pre-wrap leading-relaxed">
+      {text.slice(0, displayedLength)}
+      {displayedLength < text.length && (
+        <span className="inline-block w-1.5 h-4 ml-0.5 bg-brand animate-pulse align-middle" />
+      )}
+    </span>
+  );
+}
+
 export function ChatIndex() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [animatingIndex, setAnimatingIndex] = useState<number | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -98,16 +140,18 @@ export function ChatIndex() {
         role: "assistant",
         text: responseText,
       };
-      persist([...updatedWithUser, assistantMessage]);
+      const finalMessages = [...updatedWithUser, assistantMessage];
+      setAnimatingIndex(finalMessages.length - 1);
+      persist(finalMessages);
     } catch (err) {
       console.error(err);
-      persist([
-        ...updatedWithUser,
-        {
-          role: "assistant",
-          text: "Sorry, I couldn't process your request right now. Please try again.",
-        },
-      ]);
+      const errorMessage: Message = {
+        role: "assistant",
+        text: "Hey! 😊 I'm Zuri. I ran into a temporary connection bump, but I'm right here — what are you trying to work on?",
+      };
+      const finalMessages = [...updatedWithUser, errorMessage];
+      setAnimatingIndex(finalMessages.length - 1);
+      persist(finalMessages);
     } finally {
       setIsGenerating(false);
     }
@@ -179,7 +223,11 @@ export function ChatIndex() {
               </div>
             ) : (
               <div key={i}>
-                <p className="text-lg whitespace-pre-wrap leading-relaxed">{m.text}</p>
+                <TypewriterText
+                  text={m.text}
+                  speed={3}
+                  animate={i === animatingIndex}
+                />
                 <div className="mt-3 flex items-center gap-5 text-foreground/50">
                   <button
                     onClick={() => navigator.clipboard.writeText(m.text)}
@@ -204,7 +252,7 @@ export function ChatIndex() {
           {isGenerating && (
             <div className="flex items-center gap-3 text-muted-foreground animate-pulse">
               <Loader2 className="h-5 w-5 animate-spin text-brand" />
-              <span className="text-base">Nova is thinking...</span>
+              <span className="text-base">Zuri is thinking...</span>
             </div>
           )}
 
