@@ -3,7 +3,7 @@ services:
     name: zuri-mirror-chat
     env: node
     buildCommand: npm install && npm run build
-    startCommand: npm run start
+    startCommand: node .output/server/index.mjs
     envVars:
       - key: VITE_OPENROUTER_API_KEY
         sync: false
