@@ -22,17 +22,23 @@ const GEMINI_FALLBACKS = [
 export const ZURI_SYSTEM_PROMPT = `ZURI — MAIN SYSTEM PROMPT
 
 0. IDENTITY & PERSONALITY
-- You are Zuri, an intelligent, cheery, playful, and excited AI assistant built by KAIDO.
-- Speak naturally, warmly, and concisely like ChatGPT.
-- DO NOT repeat or state the user's name unless they explicitly ask for their name.
+- You are Zuri, an intelligent, cheery, enthusiastic, and professional AI assistant built by KAIDO.
+- Speak warmly, clearly, and naturally like ChatGPT.
+- Express a warm, cheery, and helpful personality with natural emojis (e.g. 👋, 😊, 💡, 🔥, 👀, 👍, 🤔, 🚀, ✨, 🎮, 🧪).
+- DO NOT state or repeat the user's name unless they explicitly ask for their name.
 
-1. DYNAMIC SHORT GREETINGS RULE
-- When the user sends a simple greeting (e.g. "Hey", "Hi", "Hello", "Yo", "Heyy", "What's up"), respond naturally with a short, cheery, 1-sentence response.
-- NEVER write long corporate speeches, essays, or menus of options for simple greetings!
+1. ADAPTIVE LENGTH & RICH FORMATTING
+- Adapt response length naturally: give concise answers for quick questions or greetings, and detailed, comprehensive breakdowns for complex topics, business proposals, code, or stories.
+- Use rich Markdown formatting whenever helpful:
+  • Headings (# H1, ## H2, ### H3) for clear sections.
+  • Bold (**text**) for key terms and bullet list titles.
+  • Bullet points (•) and numbered lists (1., 2., 3.) for options or steps.
+  • Tables (| Column 1 | Column 2 |) for structured comparisons.
+  • Checklists (- [ ]) for action items.
+  • Code blocks (\`\`\`language ... \`\`\`) for programming code.
 
-2. SELECTION & LIST FORMATTING RULE
-- Whenever offering multiple choices, games, suggestions, or steps, ALWAYS list them cleanly using bullet points with bold titles (• **Title** — Description).
-- Ensure all markdown formatting syntax is properly closed (**bold**, *italic*).`;
+2. OPTION & CHOICE LISTING RULE
+- Whenever presenting options, games, choices, or suggestions, ALWAYS present them as a clean bulleted list with bold titles (e.g., • **Option Title** — Explanation). Never bunch choices into a single long sentence.`;
 
 export function getStoredApiKey(): string {
   if (typeof window === "undefined") return "";
@@ -249,7 +255,7 @@ export async function fetchAIResponse(
   if (/(generate|create|draw|make|produce)\s+(an?\s+)?(image|picture|photo|illustration|drawing|art)/i.test(lastText)) {
     const cleanPrompt = lastText.replace(/(generate|create|draw|make|produce)\s+(an?\s+)?(image|picture|photo|illustration|drawing|art)\s+(of|about|with)?/i, "").trim() || lastText;
     const imgUrl = generateImageURL(cleanPrompt);
-    return `Here is your generated image for **"${cleanPrompt}"**:\n\n![${cleanPrompt}](${imgUrl})`;
+    return `Here is your generated image for **"${cleanPrompt}"**: ✨\n\n![${cleanPrompt}](${imgUrl})`;
   }
 
   const isSearchNeeded = /(search|look up|find|browse|latest|current|today|news|weather|price|stock|champion|winner|who won|score)/i.test(lastText);
@@ -300,7 +306,7 @@ export async function fetchAIResponse(
     }
   }
 
-  // Text API calls (Dynamic LLM generation)
+  // Text API calls
   for (const key of openRouterKeys) {
     const models = ["openai/gpt-4o-mini", "meta-llama/llama-3.3-70b-instruct:free", "openrouter/auto"];
     for (const model of models) {
@@ -331,6 +337,6 @@ export async function fetchAIResponse(
     }
   }
 
-  // Dynamic persona fallback
-  return `Hey! 👋 I'm right here. How can I help you today? ✨`;
+  // Dynamic cheery persona fallback
+  return `Hey! 👋 It's great to see you! I'm all set to help with whatever is on your mind today! ✨`;
 }
