@@ -2,10 +2,23 @@ import { useEffect, useState } from "react";
 import logoImg from "@/assets/logo.png";
 
 export function SplashScreen({ onComplete }: { onComplete?: () => void }) {
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(() => {
+    if (typeof window === "undefined") return false;
+    // Only show splash screen once per session; do not popup on refresh
+    return !sessionStorage.getItem("zuri_splash_shown");
+  });
   const [fadingOut, setFadingOut] = useState(false);
 
   useEffect(() => {
+    if (!visible) return;
+
+    // Mark as shown so refreshes skip the splash screen
+    try {
+      sessionStorage.setItem("zuri_splash_shown", "true");
+    } catch {
+      /* storage unavailable */
+    }
+
     // Show for 3 seconds (3000ms), then fade out over 400ms
     const timer = setTimeout(() => {
       setFadingOut(true);
@@ -17,7 +30,7 @@ export function SplashScreen({ onComplete }: { onComplete?: () => void }) {
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [onComplete]);
+  }, [visible, onComplete]);
 
   if (!visible) return null;
 
