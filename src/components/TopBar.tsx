@@ -4,7 +4,6 @@ import { Menu, SquarePen } from "lucide-react";
 export function TopBar({
   tab,
   onMenu,
-  showEdit,
   onNewChat,
 }: {
   tab: "chat" | "creative";
@@ -15,11 +14,11 @@ export function TopBar({
   const navigate = useNavigate();
 
   return (
-    <header className="flex items-center justify-between px-4 pt-5">
+    <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-3 bg-background/95 backdrop-blur-md border-b border-border/30 shadow-sm">
       <button
         aria-label="Open menu"
         onClick={onMenu}
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-border text-foreground"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2/80 text-foreground hover:bg-surface-2 transition-colors border border-border/50"
       >
         <Menu className="h-5 w-5" />
       </button>
@@ -27,7 +26,7 @@ export function TopBar({
       <div
         role="tablist"
         aria-label="Mode"
-        className="flex items-center rounded-full bg-surface-2 p-1"
+        className="flex items-center rounded-full bg-surface-2 p-1 border border-border/50"
       >
         {(["chat", "creative"] as const).map((t) => (
           <button
@@ -35,10 +34,10 @@ export function TopBar({
             role="tab"
             aria-selected={tab === t}
             onClick={() => navigate({ to: t === "chat" ? "/" : "/creative" })}
-            className={`rounded-full px-6 py-2.5 text-base capitalize transition-colors ${
+            className={`rounded-full px-5 py-2 text-sm capitalize transition-all ${
               tab === t
-                ? "bg-primary font-medium text-primary-foreground"
-                : "text-foreground/90"
+                ? "bg-primary font-medium text-primary-foreground shadow-sm"
+                : "text-foreground/80 hover:text-foreground"
             }`}
           >
             {t}
@@ -46,23 +45,13 @@ export function TopBar({
         ))}
       </div>
 
-      {showEdit ? (
-        <button
-          aria-label="New chat"
-          onClick={onNewChat}
-          className="shrink-0 px-2 text-foreground"
-        >
-          <SquarePen className="h-6 w-6" />
-        </button>
-      ) : (
-        <Link
-          to="/pro"
-          className="shrink-0 rounded-full px-4 py-2.5 text-base font-medium text-brand-foreground"
-          style={{ backgroundImage: "var(--gradient-brand)" }}
-        >
-          Get Pro
-        </Link>
-      )}
+      <button
+        aria-label="New chat"
+        onClick={onNewChat}
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2/80 text-foreground hover:bg-surface-2 transition-colors border border-border/50"
+      >
+        <SquarePen className="h-5 w-5" />
+      </button>
     </header>
   );
 }

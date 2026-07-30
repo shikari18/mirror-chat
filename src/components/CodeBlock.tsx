@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Copy, ExternalLink, Globe } from "lucide-react";
+import { Check, Copy, Download, Maximize2, Edit3, ExternalLink, Globe } from "lucide-react";
 
 export function CodeBlock({
   language,
@@ -16,29 +16,77 @@ export function CodeBlock({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleDownload = () => {
+    const blob = new Blob([code], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `zuri_code.${language || "txt"}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const isDocument = language === "markdown" || language === "document" || code.startsWith("# ");
+
+  if (isDocument) {
+    return (
+      <div className="my-4 overflow-hidden rounded-3xl border border-border/80 bg-[#16171b] shadow-xl">
+        {/* Document Canvas Header matching ChatGPT Image 1 */}
+        <div className="flex items-center justify-between border-b border-border/50 bg-[#1e1f25] px-5 py-3 text-xs text-foreground/80">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-xs font-medium border border-border/40">
+              <Edit3 className="h-3.5 w-3.5" /> Edit
+            </span>
+          </div>
+          <div className="flex items-center gap-4 text-muted-foreground">
+            <button onClick={handleCopy} aria-label="Copy" className="hover:text-foreground transition-colors">
+              {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+            </button>
+            <button onClick={handleDownload} aria-label="Download" className="hover:text-foreground transition-colors">
+              <Download className="h-4 w-4" />
+            </button>
+            <Maximize2 className="h-4 w-4 hover:text-foreground transition-colors" />
+          </div>
+        </div>
+        <div className="p-6 text-base leading-relaxed text-foreground/90 font-sans">
+          <FormattedMessage text={code} />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="my-3 overflow-hidden rounded-2xl border border-border/80 bg-[#0e0e13] shadow-md">
+    <div className="my-4 overflow-hidden rounded-2xl border border-border/80 bg-[#0e0e13] shadow-md">
       <div className="flex items-center justify-between border-b border-border/60 bg-surface-2/60 px-4 py-2 text-xs font-mono text-muted-foreground">
         <span className="font-semibold uppercase tracking-wider text-brand">
           {language || "code"}
         </span>
-        <button
-          onClick={handleCopy}
-          type="button"
-          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-foreground/80 hover:bg-surface-2 transition-colors"
-        >
-          {copied ? (
-            <>
-              <Check className="h-3.5 w-3.5 text-green-400" />
-              <span className="text-green-400 font-medium">Copied</span>
-            </>
-          ) : (
-            <>
-              <Copy className="h-3.5 w-3.5" />
-              <span>Copy</span>
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleDownload}
+            type="button"
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-foreground/70 hover:bg-surface-2 transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={handleCopy}
+            type="button"
+            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-foreground/80 hover:bg-surface-2 transition-colors"
+          >
+            {copied ? (
+              <>
+                <Check className="h-3.5 w-3.5 text-green-400" />
+                <span className="text-green-400 font-medium">Copied</span>
+              </>
+            ) : (
+              <>
+                <Copy className="h-3.5 w-3.5" />
+                <span>Copy</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
       <div className="overflow-x-auto p-4 font-mono text-sm leading-relaxed text-slate-100">
         <pre>
@@ -50,14 +98,13 @@ export function CodeBlock({
 }
 
 function InlineTextFormatter({ text }: { text: string }) {
-  // Clean raw BR tags or unparsed header markers
   let clean = text.replace(/<br\s*\/?>/gi, "").replace(/\s+BR\b/g, "");
 
   // Remove leftover leading # or ## if present
   clean = clean.replace(/^(#{1,6})\s+/, "");
 
-  // Match inline tokens: images ![alt](url), links [label](url), source pills [label], bold **text**, inline `code`
-  const tokenRegex = /(!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|\[[^\]]+\]|\*\*[^*]+\*\*|`[^`]+`)/g;
+  // Match inline tokens: images ![alt](url), links [label](url), source pills [label], bold **text**, italics *text*, inline `code`
+  const tokenRegex = /(!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|\[[^\]]+\]|\*\*[^*]+\*\*|\*[^*]+\*|_[^_]+_|`[^`]+`)/g;
   const parts = clean.split(tokenRegex);
 
   return (
@@ -121,6 +168,18 @@ function InlineTextFormatter({ text }: { text: string }) {
             <strong key={i} className="font-semibold text-white">
               {part.slice(2, -2)}
             </strong>
+          );
+        }
+
+        // Italics: *text* or _text_
+        if (
+          (part.startsWith("*") && part.endsWith("*") && part.length > 2 && !part.startsWith("**")) ||
+          (part.startsWith("_") && part.endsWith("_") && part.length > 2)
+        ) {
+          return (
+            <em key={i} className="italic text-foreground/90">
+              {part.slice(1, -1)}
+            </em>
           );
         }
 
@@ -188,7 +247,6 @@ function TableBlock({ lines }: { lines: string[] }) {
 }
 
 export function FormattedMessage({ text }: { text: string }) {
-  // Split into code blocks vs non-code text
   const parts = text.split(/(```[\s\S]*?```)/g);
 
   return (
@@ -225,6 +283,24 @@ export function FormattedMessage({ text }: { text: string }) {
               const trimmed = p.trim();
               if (!trimmed) return null;
 
+              // Horizontal Rule (--- or ***)
+              if (/^([-*_]){3,}$/.test(trimmed)) {
+                return <hr key={pIdx} className="my-4 border-border/60" />;
+              }
+
+              // Blockquote (> quote)
+              if (trimmed.startsWith(">")) {
+                const quoteText = trimmed.replace(/^>\s*/, "");
+                return (
+                  <blockquote
+                    key={pIdx}
+                    className="my-3 border-l-3 border-brand pl-4 py-1.5 italic bg-surface-2/30 rounded-r-xl text-foreground/90"
+                  >
+                    <InlineTextFormatter text={quoteText} />
+                  </blockquote>
+                );
+              }
+
               const lines = trimmed.split("\n");
 
               // Table Check
@@ -235,11 +311,27 @@ export function FormattedMessage({ text }: { text: string }) {
 
               // Headers (#, ##, ###, ####)
               if (trimmed.startsWith("#")) {
+                const level = (trimmed.match(/^(#{1,6})/) || ["", "#"])[1].length;
                 const headerText = trimmed.replace(/^(#{1,6})\s+/, "");
+
+                if (level === 1) {
+                  return (
+                    <h1 key={pIdx} className="mt-4 mb-2 text-2xl font-bold tracking-tight text-white">
+                      <InlineTextFormatter text={headerText} />
+                    </h1>
+                  );
+                }
+                if (level === 2) {
+                  return (
+                    <h2 key={pIdx} className="mt-3 mb-1.5 text-xl font-bold tracking-tight text-white">
+                      <InlineTextFormatter text={headerText} />
+                    </h2>
+                  );
+                }
                 return (
-                  <div key={pIdx} className="mt-3 mb-1 text-base font-semibold text-white">
+                  <h3 key={pIdx} className="mt-2.5 mb-1 text-lg font-semibold text-white">
                     <InlineTextFormatter text={headerText} />
-                  </div>
+                  </h3>
                 );
               }
 
@@ -271,11 +363,10 @@ export function FormattedMessage({ text }: { text: string }) {
                 <p key={pIdx} className="text-base leading-relaxed">
                   {lines.map((line, lIdx) => {
                     const lineTrimmed = line.trim();
-                    // Handle inline ## headers
                     if (/^(#{1,6})\s+/.test(lineTrimmed)) {
                       const hText = lineTrimmed.replace(/^(#{1,6})\s+/, "");
                       return (
-                        <span key={lIdx} className="block mt-3 mb-1 text-base font-semibold text-white">
+                        <span key={lIdx} className="block mt-3 mb-1 text-lg font-bold text-white">
                           <InlineTextFormatter text={hText} />
                         </span>
                       );
