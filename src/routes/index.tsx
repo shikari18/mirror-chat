@@ -91,7 +91,7 @@ function TypewriterText({
   const currentText = text.slice(0, displayedLength);
 
   return (
-    <div className="text-base leading-relaxed">
+    <div className="text-[15px] leading-relaxed">
       <FormattedMessage text={currentText} />
       {displayedLength < text.length && (
         <span className="inline-block w-1.5 h-4 ml-0.5 bg-brand animate-pulse align-middle" />
@@ -137,11 +137,9 @@ export function ChatIndex() {
       }
     }
 
-    if (threads.length > 0) {
-      setActiveThreadId(threads[0].id);
-      setActiveThreadState(threads[0].id);
-      setMessages(threads[0].messages);
-    }
+    // Default to fresh empty state if no active thread
+    setActiveThreadState(null);
+    setMessages([]);
   }, []);
 
   useEffect(() => {
@@ -200,7 +198,7 @@ export function ChatIndex() {
       console.error(err);
       const errorMessage: Message = {
         role: "assistant",
-        text: "Hey! 😊 I'm Zuri. I ran into a temporary connection bump, but I'm right here — what are you trying to work on?",
+        text: "Hey! 😊 I ran into a temporary connection bump, but I'm right here — what are you trying to work on?",
       };
       const finalMessages = [...updatedWithUser, errorMessage];
       setAnimatingIndex(finalMessages.length - 1);
@@ -270,22 +268,22 @@ export function ChatIndex() {
           </div>
         </main>
       ) : (
-        <main className="flex-1 space-y-4 px-4 pt-4 pb-28">
+        <main className="flex-1 space-y-6 px-4 pt-4 pb-28">
           {messages.map((m, i) =>
             m.role === "user" ? (
-              <div key={i} className="flex justify-end">
-                <p className="max-w-[82%] rounded-3xl bg-surface px-4 py-2.5 text-base">
+              <div key={i} className="flex justify-end my-3">
+                <p className="max-w-[82%] rounded-3xl bg-[#2b2c32] px-4.5 py-3 text-[15px] text-white">
                   {m.text}
                 </p>
               </div>
             ) : (
-              <div key={i}>
+              <div key={i} className="my-3">
                 <TypewriterText
                   text={m.text}
                   speed={12}
                   animate={i === animatingIndex}
                 />
-                <div className="mt-2.5 flex items-center gap-4 text-foreground/50">
+                <div className="mt-3 flex items-center gap-4 text-foreground/40">
                   <button
                     onClick={() => navigator.clipboard.writeText(m.text)}
                     aria-label="Copy text"
@@ -307,7 +305,7 @@ export function ChatIndex() {
           )}
 
           {isGenerating && (
-            <div className="flex items-center gap-2 py-1">
+            <div className="flex items-center gap-2 py-2">
               <span className="thinking-shimmer text-base font-medium tracking-wide">
                 {generatingStatus}
               </span>
@@ -318,10 +316,10 @@ export function ChatIndex() {
         </main>
       )}
 
-      {/* Pinned Input Bar at Bottom */}
-      <footer className="sticky bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-background via-background/95 to-transparent pt-3 pb-4 px-3">
+      {/* Pinned Transparent Glass Composer Footer */}
+      <footer className="sticky bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-background via-background/90 to-transparent pt-2 pb-4 px-3">
         <Composer
-          placeholder="Give me a task — Consider it done."
+          placeholder="Ask anything"
           onSend={(text) => handleSend(text)}
         />
       </footer>

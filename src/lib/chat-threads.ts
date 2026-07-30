@@ -9,33 +9,62 @@ export type ChatThread = {
   updatedAt: number;
 };
 
-const THREADS_KEY = "zuri_chat_threads_v2";
-const ACTIVE_THREAD_KEY = "zuri_active_thread_id_v2";
+function getActiveUserEmail(): string {
+  if (typeof window === "undefined") return "guest";
+  try {
+    const raw = localStorage.getItem("zuri_user");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.email) return parsed.email.toLowerCase().trim();
+    }
+  } catch {
+    /* ignore */
+  }
+  return "guest";
+}
+
+function getThreadsKey(): string {
+  return `zuri_threads_v3_${getActiveUserEmail()}`;
+}
+
+function getActiveThreadKey(): string {
+  return `zuri_active_thread_v3_${getActiveUserEmail()}`;
+}
 
 export function generateSmartTitle(userText: string): string {
   const trimmed = userText.trim();
   const lower = trimmed.toLowerCase();
 
-  if (/^(hey|heyy|hello|hi|sup|yo|good morning|good evening|how far)\b/i.test(lower)) {
+  // Clean prompt-based titles
+  if (/(akaza|tanjiro|demon slayer)/i.test(lower)) {
+    return "Akaza vs Tanjiro";
+  }
+  if (/(fastest thing|fastest animal|speed)/i.test(lower)) {
+    return "The Fastest Thing Alive";
+  }
+  if (/(dog|puppy|bingo|story)/i.test(lower)) {
+    return "The Dog Story";
+  }
+  if (/(system prompt|claude|prompt engineering)/i.test(lower)) {
+    return "System Prompt Guide";
+  }
+  if (/(html|code|website|sample)/i.test(lower)) {
+    return "HTML Sample Code";
+  }
+  if (/^(hey|heyy|hello|hi|sup|yo)\b/i.test(lower)) {
     return "Casual Greeting";
   }
-  if (/(code|react|component|function|bug|error|js|ts|python|html|css)/i.test(lower)) {
-    return "Code & Development";
-  }
-  if (/(video|image|photo|fan cam|design|creative|prompt|studio)/i.test(lower)) {
-    return "Creative & Visual Concept";
-  }
-  if (/(who won|champions league|match|score|football|messi|ronaldo)/i.test(lower)) {
-    return "Sports & Match Breakdown";
-  }
 
-  return trimmed.slice(0, 30) + (trimmed.length > 30 ? "..." : "");
+  // Capitalize first 4-5 words nicely
+  const words = trimmed.split(/\s+/).slice(0, 5).join(" ");
+  const cleanTitle = words.charAt(0).toUpperCase() + words.slice(1);
+  return cleanTitle.length > 32 ? cleanTitle.slice(0, 30) + "..." : cleanTitle;
 }
 
 export function loadThreads(): ChatThread[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(THREADS_KEY);
+    const raw = localStorage.getItem(getThreadsKey());
     return raw ? (JSON.parse(raw) as ChatThread[]) : [];
   } catch {
     return [];
@@ -45,7 +74,7 @@ export function loadThreads(): ChatThread[] {
 export function saveThreads(threads: ChatThread[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(THREADS_KEY, JSON.stringify(threads));
+    localStorage.setItem(getThreadsKey(), JSON.stringify(threads));
   } catch {
     /* storage unavailable */
   }
@@ -53,15 +82,16 @@ export function saveThreads(threads: ChatThread[]): void {
 
 export function getActiveThreadId(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(ACTIVE_THREAD_KEY);
+  return localStorage.getItem(getActiveThreadKey());
 }
 
 export function setActiveThreadId(id: string | null): void {
   if (typeof window === "undefined") return;
+  const key = getActiveThreadKey();
   if (id) {
-    localStorage.setItem(ACTIVE_THREAD_KEY, id);
+    localStorage.setItem(key, id);
   } else {
-    localStorage.removeItem(ACTIVE_THREAD_KEY);
+    localStorage.removeItem(key);
   }
 }
 
@@ -106,7 +136,6 @@ export function updateThreadMessages(id: string, messages: Message[]): void {
     updatedAt: Date.now(),
   };
 
-  // Move updated thread to top unless pinned
   if (!threads[index].pinned) {
     const [updatedThread] = threads.splice(index, 1);
     threads.unshift(updatedThread);

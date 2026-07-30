@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { Menu, SquarePen } from "lucide-react";
 
 export function TopBar({
@@ -14,11 +14,11 @@ export function TopBar({
   const navigate = useNavigate();
 
   return (
-    <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-3 bg-background/95 backdrop-blur-md border-b border-border/30 shadow-sm">
+    <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-3 bg-background/90 backdrop-blur-md">
       <button
         aria-label="Open menu"
         onClick={onMenu}
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2/80 text-foreground hover:bg-surface-2 transition-colors border border-border/50"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2/80 text-foreground hover:bg-surface-2 transition-colors border border-border/40"
       >
         <Menu className="h-5 w-5" />
       </button>
@@ -26,7 +26,7 @@ export function TopBar({
       <div
         role="tablist"
         aria-label="Mode"
-        className="flex items-center rounded-full bg-surface-2 p-1 border border-border/50"
+        className="flex items-center rounded-full bg-surface-2 p-1 border border-border/40"
       >
         {(["chat", "creative"] as const).map((t) => (
           <button
@@ -48,7 +48,7 @@ export function TopBar({
       <button
         aria-label="New chat"
         onClick={onNewChat}
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2/80 text-foreground hover:bg-surface-2 transition-colors border border-border/50"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2/80 text-foreground hover:bg-surface-2 transition-colors border border-border/40"
       >
         <SquarePen className="h-5 w-5" />
       </button>

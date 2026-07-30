@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Check, Copy, Download, Maximize2, Edit3, ExternalLink, Globe } from "lucide-react";
+import { useState, useId } from "react";
+import { Check, Copy, Play, Code2, ExternalLink, Globe } from "lucide-react";
 
 export function CodeBlock({
   language,
@@ -9,6 +9,8 @@ export function CodeBlock({
   code: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<"code" | "preview">("code");
+  const iframeId = useId();
 
   const handleCopy = () => {
     navigator.clipboard.writeText(code);
@@ -16,94 +18,84 @@ export function CodeBlock({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownload = () => {
-    const blob = new Blob([code], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `zuri_code.${language || "txt"}`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const isDocument = language === "markdown" || language === "document" || code.startsWith("# ");
-
-  if (isDocument) {
-    return (
-      <div className="my-4 overflow-hidden rounded-3xl border border-border/80 bg-[#16171b] shadow-xl">
-        {/* Document Canvas Header matching ChatGPT Image 1 */}
-        <div className="flex items-center justify-between border-b border-border/50 bg-[#1e1f25] px-5 py-3 text-xs text-foreground/80">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-xs font-medium border border-border/40">
-              <Edit3 className="h-3.5 w-3.5" /> Edit
-            </span>
-          </div>
-          <div className="flex items-center gap-4 text-muted-foreground">
-            <button onClick={handleCopy} aria-label="Copy" className="hover:text-foreground transition-colors">
-              {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
-            </button>
-            <button onClick={handleDownload} aria-label="Download" className="hover:text-foreground transition-colors">
-              <Download className="h-4 w-4" />
-            </button>
-            <Maximize2 className="h-4 w-4 hover:text-foreground transition-colors" />
-          </div>
-        </div>
-        <div className="p-6 text-base leading-relaxed text-foreground/90 font-sans">
-          <FormattedMessage text={code} />
-        </div>
-      </div>
-    );
-  }
+  const isHtml =
+    language?.toLowerCase() === "html" ||
+    code.includes("<!DOCTYPE html>") ||
+    code.includes("<html") ||
+    (code.includes("<style>") && code.includes("</style>"));
 
   return (
-    <div className="my-4 overflow-hidden rounded-2xl border border-border/80 bg-[#0e0e13] shadow-md">
-      <div className="flex items-center justify-between border-b border-border/60 bg-surface-2/60 px-4 py-2 text-xs font-mono text-muted-foreground">
-        <span className="font-semibold uppercase tracking-wider text-brand">
-          {language || "code"}
-        </span>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleDownload}
-            type="button"
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-foreground/70 hover:bg-surface-2 transition-colors"
-          >
-            <Download className="h-3.5 w-3.5" />
-          </button>
+    <div className="my-4 overflow-hidden rounded-3xl border border-border/70 bg-[#16171d] shadow-xl">
+      {/* Header Matching ChatGPT Image 4 & 5 */}
+      <div className="flex items-center justify-between border-b border-border/50 bg-[#1f2027] px-4 py-2.5 text-xs text-foreground/80">
+        <div className="flex items-center gap-2 font-mono font-medium text-foreground/90">
+          <Code2 className="h-4 w-4 text-brand" />
+          <span className="uppercase tracking-wide">{language || "code"}</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {isHtml && (
+            <>
+              <button
+                type="button"
+                onClick={() => setActiveTab("code")}
+                aria-label="Code view"
+                className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
+                  activeTab === "code" ? "bg-surface-2 text-foreground font-bold" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Code2 className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("preview")}
+                aria-label="Live run preview"
+                className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
+                  activeTab === "preview" ? "bg-surface-2 text-foreground font-bold" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Play className="h-3.5 w-3.5 fill-current" />
+              </button>
+            </>
+          )}
+
           <button
             onClick={handleCopy}
             type="button"
-            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-foreground/80 hover:bg-surface-2 transition-colors"
+            aria-label="Copy code"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-surface-2 hover:text-foreground transition-colors"
           >
-            {copied ? (
-              <>
-                <Check className="h-3.5 w-3.5 text-green-400" />
-                <span className="text-green-400 font-medium">Copied</span>
-              </>
-            ) : (
-              <>
-                <Copy className="h-3.5 w-3.5" />
-                <span>Copy</span>
-              </>
-            )}
+            {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
           </button>
         </div>
       </div>
-      <div className="overflow-x-auto p-4 font-mono text-sm leading-relaxed text-slate-100">
-        <pre>
-          <code>{code}</code>
-        </pre>
-      </div>
+
+      {/* Code Editor or Live Preview Card */}
+      {activeTab === "preview" && isHtml ? (
+        <div className="w-full bg-white p-4 min-h-[220px] max-h-[400px] overflow-auto text-black">
+          <iframe
+            id={iframeId}
+            title="Live Code Preview"
+            srcDoc={code}
+            className="w-full h-[260px] border-0 bg-white"
+            sandbox="allow-scripts"
+          />
+        </div>
+      ) : (
+        <div className="overflow-x-auto p-4 font-mono text-sm leading-relaxed text-slate-100 bg-[#0e0e13]">
+          <pre>
+            <code>{code}</code>
+          </pre>
+        </div>
+      )}
     </div>
   );
 }
 
 function InlineTextFormatter({ text }: { text: string }) {
   let clean = text.replace(/<br\s*\/?>/gi, "").replace(/\s+BR\b/g, "");
-
-  // Remove leftover leading # or ## if present
   clean = clean.replace(/^(#{1,6})\s+/, "");
 
-  // Match inline tokens: images ![alt](url), links [label](url), source pills [label], bold **text**, italics *text*, inline `code`
   const tokenRegex = /(!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|\[[^\]]+\]|\*\*[^*]+\*\*|\*[^*]+\*|_[^_]+_|`[^`]+`)/g;
   const parts = clean.split(tokenRegex);
 
@@ -148,7 +140,7 @@ function InlineTextFormatter({ text }: { text: string }) {
           }
         }
 
-        // Source pill without URL: [UEFA.com] or [source]
+        // Source pill: [source]
         if (part.startsWith("[") && part.endsWith("]") && !part.includes("(")) {
           const label = part.slice(1, -1);
           return (
@@ -201,56 +193,11 @@ function InlineTextFormatter({ text }: { text: string }) {
   );
 }
 
-function TableBlock({ lines }: { lines: string[] }) {
-  const dataLines = lines.filter((l) => !/^\s*\|?\s*[-:]+[-|\s:]*$/.test(l));
-  if (dataLines.length === 0) return null;
-
-  const parseRow = (line: string) => {
-    const cells = line.split("|");
-    if (cells.length > 2) {
-      return cells.slice(1, -1).map((c) => c.trim());
-    }
-    return cells.map((c) => c.trim()).filter(Boolean);
-  };
-
-  const headerCells = parseRow(dataLines[0]);
-  const bodyRows = dataLines.slice(1).map(parseRow);
-
-  return (
-    <div className="my-3 overflow-x-auto rounded-2xl border border-border/80 bg-surface/60 p-1 shadow-sm">
-      <table className="w-full text-left text-sm border-collapse">
-        {headerCells.length > 0 && (
-          <thead>
-            <tr className="border-b border-border bg-surface-2/80 text-foreground font-semibold">
-              {headerCells.map((h, i) => (
-                <th key={i} className="p-2.5 whitespace-nowrap">
-                  <InlineTextFormatter text={h} />
-                </th>
-              ))}
-            </tr>
-          </thead>
-        )}
-        <tbody className="divide-y divide-border/40 text-foreground/90">
-          {bodyRows.map((row, rIdx) => (
-            <tr key={rIdx} className="hover:bg-surface-2/40 transition-colors">
-              {row.map((cell, cIdx) => (
-                <td key={cIdx} className="p-2.5">
-                  <InlineTextFormatter text={cell} />
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 export function FormattedMessage({ text }: { text: string }) {
   const parts = text.split(/(```[\s\S]*?```)/g);
 
   return (
-    <div className="space-y-3 leading-relaxed text-base text-foreground/95">
+    <div className="space-y-4 leading-relaxed text-[15px] text-foreground/95">
       {parts.map((part, index) => {
         // Code Block
         if (part.startsWith("```") && part.endsWith("```")) {
@@ -278,15 +225,12 @@ export function FormattedMessage({ text }: { text: string }) {
         const paragraphs = part.split(/\n\n+/g);
 
         return (
-          <div key={index} className="space-y-3">
+          <div key={index} className="space-y-3.5">
             {paragraphs.map((p, pIdx) => {
               const trimmed = p.trim();
               if (!trimmed) return null;
 
-              // Horizontal Rule (--- or ***)
-              if (/^([-*_]){3,}$/.test(trimmed)) {
-                return <hr key={pIdx} className="my-4 border-border/60" />;
-              }
+              const lines = trimmed.split("\n");
 
               // Blockquote (> quote)
               if (trimmed.startsWith(">")) {
@@ -301,37 +245,13 @@ export function FormattedMessage({ text }: { text: string }) {
                 );
               }
 
-              const lines = trimmed.split("\n");
-
-              // Table Check
-              const isTable = lines.length >= 2 && lines.some((l) => l.includes("|"));
-              if (isTable) {
-                return <TableBlock key={pIdx} lines={lines} />;
-              }
-
               // Headers (#, ##, ###, ####)
               if (trimmed.startsWith("#")) {
-                const level = (trimmed.match(/^(#{1,6})/) || ["", "#"])[1].length;
                 const headerText = trimmed.replace(/^(#{1,6})\s+/, "");
-
-                if (level === 1) {
-                  return (
-                    <h1 key={pIdx} className="mt-4 mb-2 text-2xl font-bold tracking-tight text-white">
-                      <InlineTextFormatter text={headerText} />
-                    </h1>
-                  );
-                }
-                if (level === 2) {
-                  return (
-                    <h2 key={pIdx} className="mt-3 mb-1.5 text-xl font-bold tracking-tight text-white">
-                      <InlineTextFormatter text={headerText} />
-                    </h2>
-                  );
-                }
                 return (
-                  <h3 key={pIdx} className="mt-2.5 mb-1 text-lg font-semibold text-white">
+                  <div key={pIdx} className="mt-4 mb-1 text-base font-semibold text-white">
                     <InlineTextFormatter text={headerText} />
-                  </h3>
+                  </div>
                 );
               }
 
@@ -342,11 +262,11 @@ export function FormattedMessage({ text }: { text: string }) {
 
               if (isList) {
                 return (
-                  <ul key={pIdx} className="my-2 space-y-2 pl-0">
+                  <ul key={pIdx} className="my-2.5 space-y-2.5 pl-0">
                     {lines.map((line, lIdx) => {
                       const content = line.replace(/^\s*([-*•]|\d+\.)\s+/, "");
                       return (
-                        <li key={lIdx} className="flex items-start gap-2.5 text-base">
+                        <li key={lIdx} className="flex items-start gap-2.5 text-[15px]">
                           <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/60 select-none" />
                           <div className="flex-1 leading-relaxed">
                             <InlineTextFormatter text={content} />
@@ -360,13 +280,13 @@ export function FormattedMessage({ text }: { text: string }) {
 
               // Regular Paragraph
               return (
-                <p key={pIdx} className="text-base leading-relaxed">
+                <p key={pIdx} className="text-[15px] leading-relaxed">
                   {lines.map((line, lIdx) => {
                     const lineTrimmed = line.trim();
                     if (/^(#{1,6})\s+/.test(lineTrimmed)) {
                       const hText = lineTrimmed.replace(/^(#{1,6})\s+/, "");
                       return (
-                        <span key={lIdx} className="block mt-3 mb-1 text-lg font-bold text-white">
+                        <span key={lIdx} className="block mt-3 mb-1 text-base font-semibold text-white">
                           <InlineTextFormatter text={hText} />
                         </span>
                       );

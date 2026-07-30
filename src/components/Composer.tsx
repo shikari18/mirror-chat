@@ -30,8 +30,8 @@ export function Composer({
   return (
     <form
       onSubmit={handleSubmit}
-      className={`flex items-center gap-2 rounded-full bg-[#1c1d22] border border-[#2d2e35] px-3.5 py-2.5 shadow-2xl transition-all duration-200 ${
-        variant === "creative" ? "bg-black/90" : ""
+      className={`flex items-center gap-2 rounded-full bg-black/40 backdrop-blur-2xl border border-white/15 px-3.5 py-2.5 shadow-2xl transition-all duration-200 ${
+        variant === "creative" ? "bg-black/50" : ""
       }`}
     >
       <button
