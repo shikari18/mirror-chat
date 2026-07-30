@@ -4,11 +4,11 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SettingsSheet } from "@/components/SettingsSheet";
 import { TopBar } from "@/components/TopBar";
 import { Composer } from "@/components/Composer";
+import { FormattedMessage } from "@/components/CodeBlock";
 import {
   ChevronDown,
   Copy,
   Ellipsis,
-  Loader2,
   Repeat2,
   ThumbsDown,
   ThumbsUp,
@@ -19,6 +19,14 @@ import space from "@/assets/card-space.jpg";
 import mermaid from "@/assets/card-mermaid.jpg";
 import boxer from "@/assets/card-boxer.jpg";
 import { fetchAIResponse, type Message } from "@/lib/ai-api";
+import {
+  loadThreads,
+  getActiveThreadId,
+  setActiveThreadId,
+  updateThreadMessages,
+  createNewThread,
+  type ChatThread,
+} from "@/lib/chat-threads";
 
 const emptyCards = [
   { label: "Fan Cam", src: fanCam, prompt: "Create a fan cam video concept" },
@@ -47,18 +55,6 @@ export const Route = createFileRoute("/")({
   }),
   component: ChatIndex,
 });
-
-const STORAGE_KEY = "nova-chat-messages";
-
-function loadMessages(): Message[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Message[]) : [];
-  } catch {
-    return [];
-  }
-}
 
 function TypewriterText({
   text,
@@ -91,39 +87,78 @@ function TypewriterText({
     return () => clearInterval(interval);
   }, [text, speed, animate]);
 
+  const currentText = text.slice(0, displayedLength);
+
   return (
-    <span className="text-lg whitespace-pre-wrap leading-relaxed">
-      {text.slice(0, displayedLength)}
+    <div className="text-lg leading-relaxed">
+      <FormattedMessage text={currentText} />
       {displayedLength < text.length && (
         <span className="inline-block w-1.5 h-4 ml-0.5 bg-brand animate-pulse align-middle" />
       )}
-    </span>
+    </div>
   );
 }
 
 export function ChatIndex() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [activeThreadId, setActiveThreadState] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [animatingIndex, setAnimatingIndex] = useState<number | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
+  // Load active thread on mount
   useEffect(() => {
-    setMessages(loadMessages());
+    const currentId = getActiveThreadId();
+    const threads = loadThreads();
+
+    if (currentId) {
+      const active = threads.find((t) => t.id === currentId);
+      if (active) {
+        setActiveThreadState(active.id);
+        setMessages(active.messages);
+        return;
+      }
+    }
+
+    // Default to most recent thread if available
+    if (threads.length > 0) {
+      setActiveThreadId(threads[0].id);
+      setActiveThreadState(threads[0].id);
+      setMessages(threads[0].messages);
+    }
   }, []);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isGenerating]);
 
-  const persist = (next: Message[]) => {
+  const persistMessages = (next: Message[]) => {
     setMessages(next);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      /* storage unavailable */
+    let targetId = activeThreadId;
+
+    if (!targetId) {
+      const newThread = createNewThread(next);
+      setActiveThreadState(newThread.id);
+      targetId = newThread.id;
+    } else {
+      updateThreadMessages(targetId, next);
     }
+  };
+
+  const handleNewChat = () => {
+    setActiveThreadId(null);
+    setActiveThreadState(null);
+    setMessages([]);
+    setAnimatingIndex(null);
+  };
+
+  const handleSelectThread = (thread: ChatThread) => {
+    setActiveThreadId(thread.id);
+    setActiveThreadState(thread.id);
+    setMessages(thread.messages);
+    setAnimatingIndex(null);
   };
 
   const handleSend = async (userText: string) => {
@@ -131,7 +166,7 @@ export function ChatIndex() {
 
     const userMessage: Message = { role: "user", text: userText.trim() };
     const updatedWithUser = [...messages, userMessage];
-    persist(updatedWithUser);
+    persistMessages(updatedWithUser);
     setIsGenerating(true);
 
     try {
@@ -142,7 +177,7 @@ export function ChatIndex() {
       };
       const finalMessages = [...updatedWithUser, assistantMessage];
       setAnimatingIndex(finalMessages.length - 1);
-      persist(finalMessages);
+      persistMessages(finalMessages);
     } catch (err) {
       console.error(err);
       const errorMessage: Message = {
@@ -151,7 +186,7 @@ export function ChatIndex() {
       };
       const finalMessages = [...updatedWithUser, errorMessage];
       setAnimatingIndex(finalMessages.length - 1);
-      persist(finalMessages);
+      persistMessages(finalMessages);
     } finally {
       setIsGenerating(false);
     }
@@ -163,7 +198,7 @@ export function ChatIndex() {
         tab="chat"
         onMenu={() => setMenuOpen(true)}
         showEdit={messages.length > 0}
-        onNewChat={() => persist([])}
+        onNewChat={handleNewChat}
       />
 
       <AppSidebar
@@ -173,6 +208,8 @@ export function ChatIndex() {
           setMenuOpen(false);
           setSettingsOpen(true);
         }}
+        onSelectThread={handleSelectThread}
+        onNewChat={handleNewChat}
       />
       <SettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />
 
@@ -250,9 +287,10 @@ export function ChatIndex() {
           )}
 
           {isGenerating && (
-            <div className="flex items-center gap-3 text-muted-foreground animate-pulse">
-              <Loader2 className="h-5 w-5 animate-spin text-brand" />
-              <span className="text-base">Zuri is thinking...</span>
+            <div className="flex items-center gap-2 py-1">
+              <span className="thinking-shimmer text-lg font-medium tracking-wide">
+                thinking...
+              </span>
             </div>
           )}
 

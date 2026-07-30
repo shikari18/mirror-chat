@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Sheet,
@@ -14,17 +15,49 @@ import {
   Plus,
   MessageSquare,
   User,
+  Trash2,
 } from "lucide-react";
+import {
+  loadThreads,
+  setActiveThreadId,
+  getActiveThreadId,
+  deleteThread,
+  type ChatThread,
+} from "@/lib/chat-threads";
 
 export function AppSidebar({
   open,
   onOpenChange,
   onOpenSettings,
+  onSelectThread,
+  onNewChat,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onOpenSettings: () => void;
+  onSelectThread?: (thread: ChatThread) => void;
+  onNewChat?: () => void;
 }) {
+  const [threads, setThreads] = useState<ChatThread[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const activeId = getActiveThreadId();
+
+  useEffect(() => {
+    if (open) {
+      setThreads(loadThreads());
+    }
+  }, [open]);
+
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    deleteThread(id);
+    setThreads(loadThreads());
+  };
+
+  const filteredThreads = threads.filter((t) =>
+    t.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -40,7 +73,7 @@ export function AppSidebar({
             <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-2">
               <User className="h-5 w-5 text-foreground/70" />
             </span>
-            <span className="text-lg font-semibold">Emmanuel</span>
+            <span className="text-lg font-semibold">User</span>
             <ChevronRight className="ml-auto h-5 w-5 text-foreground/60" />
           </button>
 
@@ -64,7 +97,9 @@ export function AppSidebar({
               <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
               <input
                 aria-label="Search"
-                placeholder="Search"
+                placeholder="Search chats..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full min-w-0 bg-transparent text-base outline-none placeholder:text-muted-foreground"
               />
             </div>
@@ -75,14 +110,16 @@ export function AppSidebar({
             >
               <Settings className="h-5 w-5" />
             </button>
-            <Link
-              to="/chat"
-              onClick={() => onOpenChange(false)}
+            <button
               aria-label="New chat"
+              onClick={() => {
+                onNewChat?.();
+                onOpenChange(false);
+              }}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface"
             >
               <SquarePen className="h-5 w-5" />
-            </Link>
+            </button>
           </div>
 
           <Section title="Projects" />
@@ -92,21 +129,59 @@ export function AppSidebar({
           <p className="mt-3 pl-10 text-base italic text-muted-foreground">
             Explore all assistants →
           </p>
-          <Section title="Chat History" />
 
-          <div className="mt-16 flex flex-col items-center">
-            <MessageSquare className="h-8 w-8 text-foreground/25" />
-            <p className="mt-4 text-base text-muted-foreground">
-              There is no chat history here.
-            </p>
-            <Link
-              to="/chat"
-              onClick={() => onOpenChange(false)}
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-base font-medium text-primary-foreground"
-            >
-              <Plus className="h-4 w-4" /> Start new chat
-            </Link>
-          </div>
+          <Section title="Recent Chats" />
+
+          {filteredThreads.length > 0 ? (
+            <div className="mt-3 space-y-1">
+              {filteredThreads.map((t) => {
+                const isActive = t.id === activeId;
+                return (
+                  <div
+                    key={t.id}
+                    onClick={() => {
+                      setActiveThreadId(t.id);
+                      onSelectThread?.(t);
+                      onOpenChange(false);
+                    }}
+                    className={`group flex items-center justify-between rounded-xl px-3 py-3 text-left transition-colors cursor-pointer ${
+                      isActive
+                        ? "bg-surface-2 text-foreground font-medium"
+                        : "hover:bg-surface/70 text-foreground/80"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="truncate text-base">{t.title}</span>
+                    </div>
+                    <button
+                      onClick={(e) => handleDelete(e, t.id)}
+                      aria-label="Delete chat"
+                      className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-destructive transition-opacity"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="mt-10 flex flex-col items-center">
+              <MessageSquare className="h-8 w-8 text-foreground/25" />
+              <p className="mt-4 text-base text-muted-foreground">
+                There is no chat history here.
+              </p>
+              <button
+                onClick={() => {
+                  onNewChat?.();
+                  onOpenChange(false);
+                }}
+                className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-base font-medium text-primary-foreground"
+              >
+                <Plus className="h-4 w-4" /> Start new chat
+              </button>
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>

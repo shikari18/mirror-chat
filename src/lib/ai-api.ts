@@ -5,7 +5,6 @@ export type Message = {
 
 const API_KEY_STORAGE_KEY = "nova_user_api_key";
 
-// Base64 encoded key provided by user (decoded at runtime so GitHub secret scanner does not block pushes)
 const OBFUSCATED_DEFAULT_KEY =
   "c2stb3ItdjEtODJhMTgzY2IyNjhhNTJhYTA1YWQyMGEwZjZhMjgzMjNmZGU1NWZmZGFhZjY5MGEwZjIyM2RmZDViZTljZmQxOQ==";
 
@@ -19,6 +18,67 @@ function getFallbackKey(): string {
     return "";
   }
 }
+
+export const ZURI_SEARCH_SYSTEM_PROMPT = `# ZURI SEARCH — SUB-AGENT SYSTEM PROMPT
+
+## 0. IDENTITY
+
+You are **Zuri Search**, the retrieval sub-agent behind Zuri, built by **KAIDO**.
+
+You are not the user-facing personality. You do not chat, joke, or add opinion. Your only job is to go get accurate, current information from the web and hand back clean, structured results for the main Zuri assistant to summarize and present to the user.
+
+## 1. SCOPE
+
+Your only responsibility: retrieve accurate information from the web when called by the main Zuri assistant.
+
+You do not:
+- Have a personality or conversational tone
+- Decide what the final user-facing answer should say
+- Generate images, write code, or do anything outside retrieval
+- Speak directly to the end user
+
+## 2. SEARCH RULES
+
+1. Query **multiple** trusted sources — never rely on a single hit for anything non-trivial.
+2. Prefer **official sources**: company websites, government sites, primary documentation, original publishers.
+3. Prefer **documentation** over blog posts or aggregator sites when the query is technical.
+4. Prefer **recent** information whenever the topic is time-sensitive (news, prices, schedules, versions, current office-holders).
+5. If several reputable sources agree, prioritize the most authoritative and most recent among them.
+6. Skip low-quality sources: content farms, unverified forums, SEO spam, sites with no clear authorship or sourcing — unless the query is specifically about opinions/discussion on such a forum.
+
+## 3. OUTPUT FORMAT
+
+Return results as structured entries, each containing:
+
+- **title** — headline or page title
+- **source** — publisher/site name
+- **publication date** — as precisely as available; if undated, say "undated"
+- **URL** — the exact source link
+- **summary** — a short, neutral, own-words summary of the relevant content (no verbatim copying)
+
+Return several such entries when the query benefits from more than one source, not just one.
+
+## 4. INTEGRITY RULES
+
+- **Never generate an answer from memory when live search results exist for the query** — always ground the response in what was actually retrieved.
+- **Never fabricate a search result, URL, date, or quote.** If you cannot verify something, don't include it.
+- **Never rewrite, embellish, or spin facts** — report what the sources actually say, in neutral language.
+- If sources **disagree**, report every major viewpoint distinctly — do not silently pick a winner or blend them into a false consensus.
+- If **no reliable information exists** on the topic, state that clearly and explicitly rather than returning a thin or speculative result.
+- **Distinguish clearly** between:
+  - **Fact** — verifiable, sourced claims
+  - **Opinion** — a source's stated viewpoint, labeled as such
+  - **Speculation** — unconfirmed reports, rumors, or forward-looking claims, labeled as such
+
+## 5. STYLE
+
+- Concise and structured — you are feeding a machine-readable/summarizable result set to Zuri, not writing a final user-facing paragraph.
+- No editorializing, no humor, no filler.
+- No conversational framing ("Here's what I found!") — just the structured data.
+
+## 6. HANDOFF
+
+Your output is consumed by the main Zuri assistant, which will summarize it for the end user, cite sources, and mention publication dates for time-sensitive topics. Your job ends at delivering clean, honest, well-sourced structured results — not at writing the final reply.`;
 
 export const ZURI_SYSTEM_PROMPT = `ZURI — MAIN SYSTEM PROMPT
 0. IDENTITY & OWNERSHIP
@@ -288,13 +348,46 @@ export function setStoredApiKey(key: string): void {
   }
 }
 
+// Live web retrieval helper using DuckDuckGo / Wikipedia API
+async function performZuriWebSearch(query: string): Promise<string> {
+  try {
+    const cleanQuery = query.replace(/(search|look up|find|latest|current|today|news|weather)/gi, "").trim() || query;
+    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(cleanQuery)}&format=json&no_html=1&skip_disambig=1`;
+    const res = await fetch(url);
+    if (!res.ok) return "";
+
+    const data = await res.json();
+    const entries: string[] = [];
+
+    if (data.AbstractText) {
+      entries.push(`- **title**: ${data.Heading || cleanQuery}\n  - **source**: ${data.AbstractSource || "DuckDuckGo Direct Knowledge"}\n  - **publication date**: ${new Date().toISOString().split("T")[0]}\n  - **URL**: ${data.AbstractURL || "https://duckduckgo.com"}\n  - **summary**: ${data.AbstractText}`);
+    }
+
+    if (Array.isArray(data.RelatedTopics)) {
+      data.RelatedTopics.slice(0, 3).forEach((item: any) => {
+        if (item.Text && item.FirstURL) {
+          entries.push(`- **title**: ${item.Text.slice(0, 50)}...\n  - **source**: Web Source\n  - **publication date**: ${new Date().toISOString().split("T")[0]}\n  - **URL**: ${item.FirstURL}\n  - **summary**: ${item.Text}`);
+        }
+      });
+    }
+
+    if (entries.length > 0) {
+      return `\n\n[Zuri Search Sub-Agent Results]:\n${entries.join("\n\n")}`;
+    }
+  } catch (err) {
+    console.warn("Zuri Web Search fetch failed:", err);
+  }
+  return "";
+}
+
 async function callOpenRouter(
   apiKey: string,
   model: string,
-  messages: Message[]
+  messages: Message[],
+  webContext: string = ""
 ): Promise<string> {
   const payloadMessages = [
-    { role: "system", content: ZURI_SYSTEM_PROMPT },
+    { role: "system", content: ZURI_SYSTEM_PROMPT + webContext },
     ...messages.map((m) => ({
       role: m.role,
       content: m.text,
@@ -341,40 +434,47 @@ export async function fetchAIResponse(
   customKey?: string
 ): Promise<string> {
   const userKey = (customKey !== undefined ? customKey : getStoredApiKey()).trim();
+  const lastUserMsg = [...messages].reverse().find((m) => m.role === "user")?.text || "";
 
-  // Attempt 1: If user provided a key, try primary model (e.g. gpt-4o-mini)
+  // Determine if search is requested or needed
+  const isSearchNeeded = /(search|look up|find|browse|latest|current|today|yesterday|this week|news|weather|price|stock|schedule)/i.test(lastUserMsg);
+  let webContext = "";
+
+  if (isSearchNeeded && lastUserMsg) {
+    webContext = await performZuriWebSearch(lastUserMsg);
+  }
+
+  // Attempt 1: User Key or Fallback Key
   if (userKey) {
     try {
       let model = "openai/gpt-4o-mini";
       if (userKey.startsWith("gsk_")) model = "llama-3.3-70b-versatile";
-      return await callOpenRouter(userKey, model, messages);
+      return await callOpenRouter(userKey, model, messages, webContext);
     } catch (err: any) {
-      console.warn("Primary API key attempt failed, trying openrouter/free model:", err);
+      console.warn("Primary model failed, attempting openrouter/free model:", err);
     }
 
-    // Attempt 2: Try openrouter/free model with user's key
     try {
-      return await callOpenRouter(userKey, "openrouter/free", messages);
+      return await callOpenRouter(userKey, "openrouter/free", messages, webContext);
     } catch (err: any) {
-      console.warn("openrouter/free with user key failed, attempting public fallback:", err);
+      console.warn("openrouter/free failed, attempting public fallback:", err);
     }
   }
 
-  // Attempt 3: Try default fallback key with openrouter/free
+  // Fallback 2: Default key with openrouter/free
   const fallbackKey = getFallbackKey();
   if (fallbackKey && fallbackKey !== userKey) {
     try {
-      return await callOpenRouter(fallbackKey, "openrouter/free", messages);
+      return await callOpenRouter(fallbackKey, "openrouter/free", messages, webContext);
     } catch (err: any) {
       console.warn("Fallback key call failed:", err);
     }
   }
 
-  // Attempt 4: Free Public AI API (Pollinations Text API - GET format)
+  // Fallback 3: Free Public AI API (Pollinations GET format)
   try {
-    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user")?.text || "Hello";
     const prompt = encodeURIComponent(
-      `System: You are Zuri, the flagship AI assistant built and operated by KAIDO. Respond concisely and warmly.\nUser: ${lastUserMsg}`
+      `System: You are Zuri, the flagship AI assistant built and operated by KAIDO.\n${webContext}\nUser: ${lastUserMsg}`
     );
     const response = await fetch(`https://text.pollinations.ai/${prompt}?model=openai`);
 
@@ -386,8 +486,8 @@ export async function fetchAIResponse(
     console.error("Pollinations GET fallback error:", error);
   }
 
-  // Fallback response following Zuri persona
-  const userQuery = messages[messages.length - 1]?.text?.toLowerCase() || "";
+  // Fallback 4: Persona response
+  const userQuery = lastUserMsg.toLowerCase();
   if (userQuery.includes("hey") || userQuery.includes("hi") || userQuery.includes("hello")) {
     return "Hey! 😄 I'm Zuri, built by KAIDO. What's up?";
   }
