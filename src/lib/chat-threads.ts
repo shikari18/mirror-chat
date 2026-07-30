@@ -4,6 +4,7 @@ export type ChatThread = {
   id: string;
   title: string;
   messages: Message[];
+  pinned?: boolean;
   createdAt: number;
   updatedAt: number;
 };
@@ -54,6 +55,7 @@ export function createNewThread(initialMessages: Message[] = []): ChatThread {
     id: `thread_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     title,
     messages: initialMessages,
+    pinned: false,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
@@ -88,11 +90,22 @@ export function updateThreadMessages(id: string, messages: Message[]): void {
     updatedAt: Date.now(),
   };
 
-  // Move updated thread to top
-  const [updatedThread] = threads.splice(index, 1);
-  threads.unshift(updatedThread);
+  // Move updated thread to top unless pinned
+  if (!threads[index].pinned) {
+    const [updatedThread] = threads.splice(index, 1);
+    threads.unshift(updatedThread);
+  }
 
   saveThreads(threads);
+}
+
+export function togglePinThread(id: string): void {
+  const threads = loadThreads();
+  const index = threads.findIndex((t) => t.id === id);
+  if (index !== -1) {
+    threads[index].pinned = !threads[index].pinned;
+    saveThreads(threads);
+  }
 }
 
 export function deleteThread(id: string): void {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Sheet,
@@ -16,13 +16,16 @@ import {
   MessageSquare,
   User,
   Trash2,
-  LogIn,
+  MoreVertical,
+  Pin,
+  PinOff,
 } from "lucide-react";
 import {
   loadThreads,
   setActiveThreadId,
   getActiveThreadId,
   deleteThread,
+  togglePinThread,
   type ChatThread,
 } from "@/lib/chat-threads";
 
@@ -43,12 +46,15 @@ export function AppSidebar({
 }) {
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [user, setUser] = useState<{ email: string } | null>(null);
   const activeId = getActiveThreadId();
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
       setThreads(loadThreads());
+      setOpenMenuId(null);
       try {
         const stored = localStorage.getItem("zuri_user");
         if (stored) setUser(JSON.parse(stored));
@@ -58,10 +64,28 @@ export function AppSidebar({
     }
   }, [open]);
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     deleteThread(id);
     setThreads(loadThreads());
+    setOpenMenuId(null);
+  };
+
+  const handleTogglePin = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    togglePinThread(id);
+    setThreads(loadThreads());
+    setOpenMenuId(null);
   };
 
   const filteredThreads = threads.filter((t) =>
@@ -159,31 +183,76 @@ export function AppSidebar({
             <div className="mt-3 space-y-1">
               {filteredThreads.map((t) => {
                 const isActive = t.id === activeId;
+                const isMenuOpen = openMenuId === t.id;
+
                 return (
                   <div
                     key={t.id}
-                    onClick={() => {
-                      setActiveThreadId(t.id);
-                      onSelectThread?.(t);
-                      onOpenChange(false);
-                    }}
-                    className={`group flex items-center justify-between rounded-xl px-3 py-3 text-left transition-colors cursor-pointer ${
-                      isActive
-                        ? "bg-surface-2 text-foreground font-medium"
-                        : "hover:bg-surface/70 text-foreground/80"
-                    }`}
+                    className="relative"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span className="truncate text-base">{t.title}</span>
-                    </div>
-                    <button
-                      onClick={(e) => handleDelete(e, t.id)}
-                      aria-label="Delete chat"
-                      className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-destructive transition-opacity"
+                    <div
+                      onClick={() => {
+                        setActiveThreadId(t.id);
+                        onSelectThread?.(t);
+                        onOpenChange(false);
+                      }}
+                      className={`group flex items-center justify-between rounded-xl px-3 py-3 text-left transition-colors cursor-pointer ${
+                        isActive
+                          ? "bg-surface-2 text-foreground font-medium"
+                          : "hover:bg-surface/70 text-foreground/80"
+                      }`}
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="truncate text-base">{t.title}</span>
+                        {t.pinned && (
+                          <Pin className="h-3.5 w-3.5 text-brand shrink-0 rotate-45" />
+                        )}
+                      </div>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(isMenuOpen ? null : t.id);
+                        }}
+                        aria-label="Options"
+                        className="p-1 rounded-md hover:bg-surface-2 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {/* 3-Dot Dropdown Menu */}
+                    {isMenuOpen && (
+                      <div
+                        ref={menuRef}
+                        className="absolute right-2 top-11 z-50 w-48 overflow-hidden rounded-xl border border-border bg-[#18191e] p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+                      >
+                        <button
+                          onClick={(e) => handleTogglePin(e, t.id)}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-surface-2 transition-colors text-left"
+                        >
+                          {t.pinned ? (
+                            <>
+                              <PinOff className="h-4 w-4 text-brand shrink-0" />
+                              <span>Unmark conversation</span>
+                            </>
+                          ) : (
+                            <>
+                              <Pin className="h-4 w-4 text-brand shrink-0" />
+                              <span>Mark conversation</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={(e) => handleDelete(e, t.id)}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors text-left"
+                        >
+                          <Trash2 className="h-4 w-4 shrink-0" />
+                          <span>Delete conversation</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}

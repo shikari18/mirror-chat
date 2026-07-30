@@ -50,9 +50,12 @@ export function CodeBlock({
 }
 
 function InlineTextFormatter({ text }: { text: string }) {
-  // Regex to match inline elements: links [label](url), source pills [label], bold **text**, inline `code`
+  // Strip raw BR HTML tags or uppercase BR artifacts
+  const cleanText = text.replace(/<br\s*\/?>/gi, "").replace(/\s+BR\b/g, "");
+
+  // Match inline elements: links [label](url), source pills [label], bold **text**, inline `code`
   const tokenRegex = /(\[[^\]]+\]\([^)]+\)|\[[^\]]+\]|\*\*[^*]+\*\*|`[^`]+`)/g;
-  const parts = text.split(tokenRegex);
+  const parts = cleanText.split(tokenRegex);
 
   return (
     <>
@@ -97,7 +100,7 @@ function InlineTextFormatter({ text }: { text: string }) {
         // Bold: **text**
         if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
           return (
-            <strong key={i} className="font-semibold text-foreground">
+            <strong key={i} className="font-bold text-foreground">
               {part.slice(2, -2)}
             </strong>
           );
@@ -118,6 +121,52 @@ function InlineTextFormatter({ text }: { text: string }) {
         return <span key={i}>{part}</span>;
       })}
     </>
+  );
+}
+
+function TableBlock({ lines }: { lines: string[] }) {
+  // Filter out delimiter line like |---|---|
+  const dataLines = lines.filter((l) => !/^\s*\|?\s*[-:]+[-|\s:]*$/.test(l));
+  if (dataLines.length === 0) return null;
+
+  const parseRow = (line: string) => {
+    const cells = line.split("|");
+    if (cells.length > 2) {
+      return cells.slice(1, -1).map((c) => c.trim());
+    }
+    return cells.map((c) => c.trim()).filter(Boolean);
+  };
+
+  const headerCells = parseRow(dataLines[0]);
+  const bodyRows = dataLines.slice(1).map(parseRow);
+
+  return (
+    <div className="my-4 overflow-x-auto rounded-2xl border border-border/80 bg-surface/60 p-1 shadow-sm">
+      <table className="w-full text-left text-sm border-collapse">
+        {headerCells.length > 0 && (
+          <thead>
+            <tr className="border-b border-border bg-surface-2/80 text-foreground font-semibold">
+              {headerCells.map((h, i) => (
+                <th key={i} className="p-3 whitespace-nowrap">
+                  <InlineTextFormatter text={h} />
+                </th>
+              ))}
+            </tr>
+          </thead>
+        )}
+        <tbody className="divide-y divide-border/40 text-foreground/90">
+          {bodyRows.map((row, rIdx) => (
+            <tr key={rIdx} className="hover:bg-surface-2/40 transition-colors">
+              {row.map((cell, cIdx) => (
+                <td key={cIdx} className="p-3">
+                  <InlineTextFormatter text={cell} />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -154,13 +203,49 @@ export function FormattedMessage({ text }: { text: string }) {
         const paragraphs = part.split(/\n\n+/g);
 
         return (
-          <div key={index} className="space-y-2">
+          <div key={index} className="space-y-3">
             {paragraphs.map((p, pIdx) => {
               const trimmed = p.trim();
               if (!trimmed) return null;
 
-              // Check if paragraph is a list (lines starting with - , * , • or 1. )
               const lines = trimmed.split("\n");
+
+              // 1. Markdown Table Check (lines with |)
+              const isTable = lines.length >= 2 && lines.some((l) => l.includes("|"));
+              if (isTable) {
+                return <TableBlock key={pIdx} lines={lines} />;
+              }
+
+              // 2. Header Check (#, ##, ###, ####)
+              if (trimmed.startsWith("#")) {
+                const headerMatch = trimmed.match(/^(#{1,6})\s+(.+)$/s);
+                if (headerMatch) {
+                  const level = headerMatch[1].length;
+                  const headerText = headerMatch[2];
+
+                  if (level === 1) {
+                    return (
+                      <h1 key={pIdx} className="mt-4 mb-2 text-2xl font-bold tracking-tight text-foreground">
+                        <InlineTextFormatter text={headerText} />
+                      </h1>
+                    );
+                  }
+                  if (level === 2) {
+                    return (
+                      <h2 key={pIdx} className="mt-4 mb-2 text-xl font-bold tracking-tight text-foreground">
+                        <InlineTextFormatter text={headerText} />
+                      </h2>
+                    );
+                  }
+                  return (
+                    <h3 key={pIdx} className="mt-3 mb-1.5 text-lg font-semibold text-foreground">
+                      <InlineTextFormatter text={headerText} />
+                    </h3>
+                  );
+                }
+              }
+
+              // 3. List Check (lines starting with - , * , • or 1. )
               const isList = lines.every((line) =>
                 /^\s*([-*•]|\d+\.)\s+/.test(line)
               );
@@ -172,7 +257,7 @@ export function FormattedMessage({ text }: { text: string }) {
                       const content = line.replace(/^\s*([-*•]|\d+\.)\s+/, "");
                       return (
                         <li key={lIdx} className="flex items-start gap-2 text-lg">
-                          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/60" />
+                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/70" />
                           <span className="flex-1">
                             <InlineTextFormatter text={content} />
                           </span>
@@ -183,15 +268,27 @@ export function FormattedMessage({ text }: { text: string }) {
                 );
               }
 
-              // Normal paragraph with potential single line breaks
+              // 4. Regular Paragraph
               return (
                 <p key={pIdx} className="text-lg leading-relaxed">
-                  {lines.map((line, lIdx) => (
-                    <span key={lIdx}>
-                      <InlineTextFormatter text={line} />
-                      {lIdx < lines.length - 1 && <br />}
-                    </span>
-                  ))}
+                  {lines.map((line, lIdx) => {
+                    // Check if individual line is a header inside paragraph
+                    if (/^(#{1,6})\s+/.test(line.trim())) {
+                      const hText = line.trim().replace(/^(#{1,6})\s+/, "");
+                      return (
+                        <strong key={lIdx} className="block mt-3 mb-1 text-xl font-bold text-foreground">
+                          <InlineTextFormatter text={hText} />
+                        </strong>
+                      );
+                    }
+
+                    return (
+                      <span key={lIdx}>
+                        <InlineTextFormatter text={line} />
+                        {lIdx < lines.length - 1 && <br />}
+                      </span>
+                    );
+                  })}
                 </p>
               );
             })}
