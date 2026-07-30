@@ -11,7 +11,7 @@ export function AuthModal({
 }) {
   const [mode, setMode] = useState<"options" | "email" | "success">("options");
   const [email, setEmail] = useState("");
-  const [user, setUser] = useState<{ email: string } | null>(null);
+  const [user, setUser] = useState<{ email: string; name?: string; avatar?: string } | null>(null);
 
   useEffect(() => {
     try {
@@ -23,6 +23,28 @@ export function AuthModal({
   }, []);
 
   if (!open) return null;
+
+  const handleGoogleLogin = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    
+    if (clientId) {
+      const redirectUri = window.location.origin;
+      const scope = "email profile";
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
+      window.location.href = authUrl;
+      return;
+    }
+
+    // Demo Google Login fallback
+    const loggedUser = { email: "user.google@gmail.com", name: "Google User" };
+    setUser(loggedUser);
+    localStorage.setItem("zuri_user", JSON.stringify(loggedUser));
+    setMode("success");
+    setTimeout(() => {
+      onOpenChange(false);
+      setMode("options");
+    }, 1500);
+  };
 
   const handleLogin = (provider: string) => {
     const loggedUser = { email: email || `${provider.toLowerCase()}user@example.com` };
@@ -61,7 +83,7 @@ export function AuthModal({
         </div>
       </div>
 
-      {/* Bottom Action Sheet Card matching Image 2 */}
+      {/* Bottom Action Sheet Card */}
       <div className="w-full rounded-t-3xl bg-[#141519] border-t border-border/40 p-6 pb-8 space-y-3.5 shadow-2xl">
         {mode === "options" ? (
           <>
@@ -78,7 +100,7 @@ export function AuthModal({
 
             <button
               type="button"
-              onClick={() => handleLogin("Google")}
+              onClick={handleGoogleLogin}
               className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-[#24252a] border border-border/40 px-5 py-4 text-base font-semibold text-white transition-transform active:scale-[0.99] hover:bg-[#2c2d33]"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
